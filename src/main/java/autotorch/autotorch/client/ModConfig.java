@@ -39,4 +39,9 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Category("server_friendly")
     @Comment("Only place torches in the general direction you are looking (FOV check)")
     boolean requireLineOfSightAngle = true;
+
+    @ConfigEntry.Category("server_friendly")
+    @Comment("The angle of the cone in which to place torches, from 10 to 180 degrees.")
+    @ConfigEntry.BoundedDiscrete(min = 10, max = 180)
+    int lineOfSightAngle = 120;
 }

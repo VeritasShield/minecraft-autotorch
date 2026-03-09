@@ -117,7 +117,7 @@ public class AutotorchClient implements ClientModInitializer {
                     for (int x = -r; x <= r; x++) {
                         for (int y = -1; y <= 1; y++) {
                             for (int z = -r; z <= r; z++) {
-                                // Analiza solo los bordes del anillo actual (de más cerca a más lejos)
+                                // Analiza solo los bordes del anillo cuadrado actual
                                 if (Math.abs(x) == r || Math.abs(z) == r) {
                                     BlockPos checkPos = playerPos.add(x, y, z);
                                     
@@ -137,6 +137,7 @@ public class AutotorchClient implements ClientModInitializer {
             }
         }
     }
+
 
     private boolean needsTorch(MinecraftClient client, BlockPos pos) {
         return client.world.getLightLevel(LightType.BLOCK, pos) < CDATA.lightLevel && canPlaceTorch(pos);
@@ -158,7 +159,7 @@ public class AutotorchClient implements ClientModInitializer {
                hit.getBlockPos().equals(target.down());
     }
 
-    // Calcula si el bloque está en un cono de 120 grados frente a la cámara del jugador
+    // Calcula si el bloque está en un cono configurable frente a la cámara del jugador
     private boolean isLookingAt(MinecraftClient client, BlockPos target) {
         Vec3d eyePos = client.player.getEyePos();
         Vec3d targetVec = Vec3d.ofCenter(target);
@@ -168,9 +169,10 @@ public class AutotorchClient implements ClientModInitializer {
         // Vector hacia donde está mirando el jugador
         Vec3d lookVec = client.player.getRotationVec(1.0F).normalize();
         
-        // El producto punto da 1.0 si miras exacto, 0.0 si está a 90 grados. 
-        // > 0.5 significa un cono de visión de 120 grados frente a ti.
-        return lookVec.dotProduct(toTarget) > 0.5;
+        // El producto punto da 1.0 si miras exacto, 0.0 si está a 90 grados.
+        double angle = CDATA.lineOfSightAngle;
+        double minDotProduct = Math.cos(Math.toRadians(angle / 2.0));
+        return lookVec.dotProduct(toTarget) > minDotProduct;
     }
 
     private void placeTorch(BlockPos pos, Hand hand, int hotbarSlot) {

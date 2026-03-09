@@ -2,15 +2,18 @@
   "text.autoconfig.autotorch.title": "Antorcha Automática",
   "text.autoconfig.autotorch.option.enabled": "Activar Antorcha Automática",
   "text.autoconfig.autotorch.option.lightLevel": "Nivel de Luz Mínimo",
-  "text.autoconfig.autotorch.option.PlacementRadius": "Radio de Colocación de Antorcha",
-  "text.autoconfig.autotorch.option.accuratePlacement": "Activar Colocación Precisa de Antorcha",
+  "text.autoconfig.autotorch.option.placementRadius": "Radio de Colocación",
+  "text.autoconfig.autotorch.option.swingHand": "Animación de Brazo (Evita kicks)",
+  "text.autoconfig.autotorch.option.humanizedDelay": "Retraso Humanizado (Aleatorio)",
+  "text.autoconfig.autotorch.option.accuratePlacement": "Activar Colocación Precisa",
+  "text.autoconfig.autotorch.option.requireLineOfSightAngle": "Requerir Línea de Visión",
+  "text.autoconfig.autotorch.option.lineOfSightAngle": "Ángulo de Visión (Grados)",
+
   "autotorch.message.enabled": "Colocación automática de antorchas activada",
   "autotorch.message.disabled": "Colocación automática de antorchas desactivada",
   "autotorch.autotorch.toggle": "Activar/Desactivar Antorcha Automática",
+
   "key.category.autotorch.options": "Antorcha Automática",
   "text.autoconfig.autotorch.category.general": "General",
-  "text.autoconfig.autotorch.category.server_friendly": "Anti-Cheat Seguro",
-  "text.autoconfig.autotorch.option.swingHand": "Animación de Brazo (Evita kicks)",
-  "text.autoconfig.autotorch.option.humanizedDelay": "Retraso Humanizado (Aleatorio)",
-  "text.autoconfig.autotorch.option.requireLineOfSightAngle": "Requerir Mirar al Bloque (FOV)"
+  "text.autoconfig.autotorch.category.server_friendly": "Amigable con Servidores"
 }
