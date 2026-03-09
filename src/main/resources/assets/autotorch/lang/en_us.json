@@ -1,0 +1,16 @@
+{
+  "text.autoconfig.autotorch.title": "Auto Torch",
+  "text.autoconfig.autotorch.option.enabled": "Enable Auto Torch",
+  "text.autoconfig.autotorch.option.lightLevel": "Minimum Light Level",
+  "text.autoconfig.autotorch.option.PlacementRadius": "Torch Placement Radius",
+  "text.autoconfig.autotorch.option.accuratePlacement": "Enable Accurate Torch Placement",
+  "autotorch.message.enabled": "Enabled automatic torch placement",
+  "autotorch.message.disabled": "Disabled automatic torch placement",
+  "autotorch.autotorch.toggle": "Toggle Autotorch",
+  "key.category.autotorch.options": "Auto Torch",
+  "text.autoconfig.autotorch.category.general": "General",
+  "text.autoconfig.autotorch.category.server_friendly": "Server Friendly",
+  "text.autoconfig.autotorch.option.swingHand": "Swing Hand Animation",
+  "text.autoconfig.autotorch.option.humanizedDelay": "Humanized Random Delay",
+  "text.autoconfig.autotorch.option.requireLineOfSightAngle": "Require Looking at Block (FOV)"
+}
