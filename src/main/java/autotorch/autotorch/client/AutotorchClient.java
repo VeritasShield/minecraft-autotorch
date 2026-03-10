@@ -55,6 +55,11 @@ public class AutotorchClient implements ClientModInitializer {
 
     // Evita poner antorchas repetidas mientras el juego procesa la luz
     private int placeCooldown = 0; 
+    // Variables para el retardo al romper bloques
+    private int pendingTorchDelay = 0;
+    private BlockPos pendingTorchPos = null;
+    private Hand pendingHand = null;
+    private int pendingSlot = -1;
 
     @Override
     public void onInitializeClient() {
@@ -73,6 +78,23 @@ public class AutotorchClient implements ClientModInitializer {
             placeCooldown--;
         }
 
+        // --- SISTEMA DE RETRASO PARA BLOQUES ROTOS ---
+        if (pendingTorchDelay > 0) {
+            pendingTorchDelay--;
+            if (pendingTorchDelay == 0 && pendingTorchPos != null && client.world != null) {
+                // Volver a comprobar la luz después del retraso
+                if (needsTorch(client, pendingTorchPos)) {
+                    placeTorch(pendingTorchPos, pendingHand, pendingSlot);
+                    placeCooldown = CDATA.humanizedDelay ? (6 + (int)(Math.random() * 6)) : 5;
+                }
+                // Limpiar la cola
+                pendingTorchPos = null;
+                pendingHand = null;
+                pendingSlot = -1;
+            }
+        }
+        // ---------------------------------------------
+
         if (client.player != null && client.world != null) {
             if (AutoPlaceBinding.wasPressed()) {
                 CDATA.enabled = !CDATA.enabled;
@@ -81,7 +103,8 @@ public class AutotorchClient implements ClientModInitializer {
             }
             if (!CDATA.enabled) return;
             
-            if (placeCooldown > 0) return;
+            // Si estamos en cooldown o esperando para poner una antorcha, no buscamos más
+            if (placeCooldown > 0 || pendingTorchPos != null) return;
 
             int torchSlot = -1;
             Hand placingHand = Hand.MAIN_HAND;
@@ -105,27 +128,22 @@ public class AutotorchClient implements ClientModInitializer {
 
             // 1. PRIORIDAD: Justo debajo de los pies
             if (needsTorch(client, playerPos)) {
-                placeTorch(playerPos, placingHand, torchSlot);
-                placeCooldown = CDATA.humanizedDelay ? (6 + (int)(Math.random() * 6)) : 5; // Pausa de 0.25 seg
+                queueTorchPlacement(playerPos, placingHand, torchSlot);
                 return;
             }
 
             // 2. ESCÁNER: Radio expansivo a la distancia configurada
             if (CDATA.placementRadius > 0) {
-                // Escanea el nivel actual y un bloque arriba/abajo
                 for (int r = 1; r <= CDATA.placementRadius; r++) {
                     for (int x = -r; x <= r; x++) {
                         for (int y = -1; y <= 1; y++) {
                             for (int z = -r; z <= r; z++) {
-                                // Analiza solo los bordes del anillo cuadrado actual
                                 if (Math.abs(x) == r || Math.abs(z) == r) {
                                     BlockPos checkPos = playerPos.add(x, y, z);
                                     
                                     if (needsTorch(client, checkPos) && hasLineOfSight(client, checkPos)) {
-                                        // Validar que lo estamos mirando (si la opción de seguridad está activa)
                                         if (!CDATA.requireLineOfSightAngle || isLookingAt(client, checkPos)) {
-                                            placeTorch(checkPos, placingHand, torchSlot);
-                                            placeCooldown = CDATA.humanizedDelay ? (6 + (int)(Math.random() * 6)) : 5;
+                                            queueTorchPlacement(checkPos, placingHand, torchSlot);
                                             return;
                                         }
                                     }
@@ -138,9 +156,16 @@ public class AutotorchClient implements ClientModInitializer {
         }
     }
 
-
     private boolean needsTorch(MinecraftClient client, BlockPos pos) {
         return client.world.getLightLevel(LightType.BLOCK, pos) < CDATA.lightLevel && canPlaceTorch(pos);
+    }
+    // Método para encolar la colocación de la antorcha con un pequeño retraso
+    private void queueTorchPlacement(BlockPos pos, Hand hand, int slot) {
+        this.pendingTorchPos = pos;
+        this.pendingHand = hand;
+        this.pendingSlot = slot;
+        // Esperamos 4 ticks (0.2 segundos) para dar tiempo a que la luz se actualice
+        this.pendingTorchDelay = 4; 
     }
 
     // El "láser" que evita poner antorchas a través de las paredes
