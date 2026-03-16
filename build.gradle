@@ -23,7 +23,21 @@ java {
 base {
     archivesName = "${project.archives_base_name}-mc${project.minecraft_version}"
 }
-version = "${project.mod_version}+${getVersionMetadata()}"
+// Guardamos la versión actual en una variable
+def currentVersion = project.mod_version
+
+if (project.hasProperty("release")) {
+    // Si es una release, calculamos el nuevo número AHORA MISMO
+    def matcher = currentVersion =~ /(\d+)\.(\d+)\.(\d+)/
+    if (matcher.find()) {
+        def patch = matcher.group(3).toInteger() + 1
+        currentVersion = "${matcher.group(1)}.${matcher.group(2)}.${patch}"
+    }
+    version = currentVersion
+} else {
+    // Si es un build normal, le pegamos los metadatos de Git/Build
+    version = "${currentVersion}+${getVersionMetadata()}"
+}
 group = project.maven_group
 
 dependencies {
@@ -105,4 +119,43 @@ def getVersionMetadata() {
 
     // No tracking information could be found about the build
     return "unknown"
+}
+// ============================================================================
+// SISTEMA DE AUTO-VERSIÓN (Ejecutar con: .\gradlew build -Prelease)
+// ============================================================================
+
+task bumpVersion {
+    group = "versioning"
+    description = "Guarda la nueva versión calculada en gradle.properties"
+    
+    doLast {
+        if (project.hasProperty('release')) {
+            def propFile = file('gradle.properties')
+            def text = propFile.text
+            
+            // Reemplaza la versión vieja por la nueva que ya calculamos arriba
+            text = text.replaceFirst(/mod_version=\d+\.\d+\.\d+/, "mod_version=${project.version}")
+            propFile.text = text
+            
+            println "====================================================="
+            println " 🚀 ¡Éxito! Release preparada y guardada: ${project.version}"
+            println "====================================================="
+        }
+    }
+}
+
+if (project.hasProperty('release')) {
+    // Queremos que el archivo se guarde justo al empezar a compilar recursos
+    tasks.named('processResources') {
+        dependsOn 'bumpVersion'
+    }
+} else {
+    tasks.named('build') {
+        doFirst {
+            println "====================================================="
+            println " ⚠️  Build de desarrollo (Versión: ${project.version})"
+            println "     (Usa '.\\gradlew build -Prelease' para publicar)"
+            println "====================================================="
+        }
+    }
 }

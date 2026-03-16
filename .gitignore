@@ -4,6 +4,7 @@
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+.history/
 
 # Generated files
 .idea/**/contentModel.xml
@@ -157,3 +158,16 @@ run/
 
 # Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
 !gradle-wrapper.jar
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260310085438.java
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260316102655.java
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260316102943.java
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260316104032.java
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260316104034.java
+.history/src/main/java/autotorch/autotorch/client/AutotorchClient_20260316110213.java
+.history/src/main/java/autotorch/autotorch/client/ModConfig_20260309124646.java
+.history/src/main/java/autotorch/autotorch/client/ModConfig_20260316102635.java
+.history/src/main/resources/assets/autotorch/lang/en_us_20260309124718.json
+.history/src/main/resources/assets/autotorch/lang/en_us_20260316102914.json
+.history/src/main/resources/assets/autotorch/lang/en_us_20260316102916.json
+.history/src/main/resources/assets/autotorch/lang/es_es_20260309125920.json
+.history/src/main/resources/assets/autotorch/lang/es_es_20260316102845.json
