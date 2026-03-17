@@ -3,6 +3,8 @@ package autotorch.autotorch.client;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.*;
 import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
+import java.util.ArrayList;
+import java.util.List;
 
 @Config(name="autotorch")
 public class ModConfig implements ConfigData {
@@ -75,4 +77,8 @@ public class ModConfig implements ConfigData {
     @Comment("Max random ticks added to the slot revert delay (if humanized delay is on)")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
     int slotRevertVariance = 3;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("List of block IDs where torches should NEVER be placed (e.g. minecraft:glass)")
+    List<String> blacklistedBlocks = new ArrayList<>();
 }

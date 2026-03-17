@@ -13,6 +13,7 @@ import net.minecraft.item.Items;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.BlockItem;
 import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -52,6 +53,15 @@ public class AutotorchClient implements ClientModInitializer {
                     "autotorch.autotorch.toggle",
                     InputUtil.Type.KEYSYM,
                     GLFW.GLFW_KEY_LEFT_ALT,
+                    keyCategory
+            )
+    );
+
+    private static final KeyBinding BlacklistBinding = KeyBindingHelper.registerKeyBinding(
+            new KeyBinding(
+                    "autotorch.autotorch.blacklist",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_B,
                     keyCategory
             )
     );
@@ -118,6 +128,25 @@ public class AutotorchClient implements ClientModInitializer {
                 var msg = CDATA.enabled ? Text.translatable("autotorch.message.enabled") : Text.translatable("autotorch.message.disabled");
                 client.player.sendMessage(msg, true);
             }
+
+            if (BlacklistBinding.wasPressed()) {
+                HitResult hit = client.crosshairTarget;
+                if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
+                    BlockPos pos = ((BlockHitResult) hit).getBlockPos();
+                    Block block = client.world.getBlockState(pos).getBlock();
+                    String blockId = Registries.BLOCK.getId(block).toString();
+                    
+                    if (CDATA.blacklistedBlocks.contains(blockId)) {
+                        CDATA.blacklistedBlocks.remove(blockId);
+                        client.player.sendMessage(Text.literal("§c[-] §f" + blockId + " §cremovido de la blacklist."), true);
+                    } else {
+                        CDATA.blacklistedBlocks.add(blockId);
+                        client.player.sendMessage(Text.literal("§a[+] §f" + blockId + " §aañadido a la blacklist."), true);
+                    }
+                    CONFIG.save(); // Guarda el cambio en el archivo config al instante
+                }
+            }
+
             if (!CDATA.enabled) return;
             
             // Si estamos en cooldown o esperando para poner una antorcha, no buscamos más
@@ -262,8 +291,16 @@ public class AutotorchClient implements ClientModInitializer {
     }
 
     public boolean canPlaceTorch(BlockPos pos) {
+        BlockPos supportPos = pos.down();
+        Block supportBlock = client.world.getBlockState(supportPos).getBlock();
+        String blockId = Registries.BLOCK.getId(supportBlock).toString();
+
+        if (CDATA.blacklistedBlocks.contains(blockId)) {
+            return false;
+        }
+
         return (client.world.getBlockState(pos).isReplaceable() &&
                 client.world.getBlockState(pos).getFluidState().isEmpty() &&
-                Block.sideCoversSmallSquare(client.world, pos.down(), Direction.UP));
+                Block.sideCoversSmallSquare(client.world, supportPos, Direction.UP));
     }
 }

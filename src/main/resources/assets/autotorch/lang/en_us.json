@@ -14,10 +14,12 @@
   "text.autoconfig.autotorch.option.slotRevertDelayTicks": "Slot Revert Delay (Ticks)",
   "text.autoconfig.autotorch.option.placeCooldownVariance": "Cooldown Random Variance",
   "text.autoconfig.autotorch.option.slotRevertVariance": "Slot Revert Random Variance",
+  "text.autoconfig.autotorch.option.blacklistedBlocks": "Blacklisted Blocks (IDs)",
 
   "autotorch.message.enabled": "Enabled automatic torch placement",
   "autotorch.message.disabled": "Disabled automatic torch placement",
   "autotorch.autotorch.toggle": "Toggle Autotorch",
+  "autotorch.autotorch.blacklist": "Toggle Blacklist (Look at block)",
 
   "key.category.autotorch.options": "Auto Torch",
   "text.autoconfig.autotorch.category.general": "General",
