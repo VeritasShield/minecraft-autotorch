@@ -8,6 +8,9 @@
   "text.autoconfig.autotorch.option.accuratePlacement": "Enable Accurate Torch Placement",
   "text.autoconfig.autotorch.option.requireLineOfSightAngle": "Require Looking at Block (FOV)",
   "text.autoconfig.autotorch.option.lineOfSightAngle": "Line of Sight Angle (Degrees)",
+  "text.autoconfig.autotorch.option.placeCooldownTicks": "Cooldown Base (Ticks)",
+  "text.autoconfig.autotorch.option.lightUpdateDelayTicks": "Light Update Delay (Ticks)",
+  "text.autoconfig.autotorch.option.slotRevertDelayTicks": "Slot Revert Delay (Ticks)",
 
   "autotorch.message.enabled": "Enabled automatic torch placement",
   "autotorch.message.disabled": "Disabled automatic torch placement",
@@ -15,5 +18,6 @@
 
   "key.category.autotorch.options": "Auto Torch",
   "text.autoconfig.autotorch.category.general": "General",
-  "text.autoconfig.autotorch.category.server_friendly": "Server Friendly"
+  "text.autoconfig.autotorch.category.server_friendly": "Server Friendly",
+  "text.autoconfig.autotorch.category.advanced": "Advanced"
 }

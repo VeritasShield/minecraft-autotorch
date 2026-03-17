@@ -1,7 +1,5 @@
 package autotorch.autotorch.client;
 
-import com.google.common.collect.ImmutableSet;
-
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -11,7 +9,8 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.Item;
-import net.minecraft.item.Items;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -40,7 +39,7 @@ public class AutotorchClient implements ClientModInitializer {
     private MinecraftClient client;
     public ConfigHolder<ModConfig> CONFIG;
     private ModConfig CDATA;
-    private static final ImmutableSet<Item> TorchSet = ImmutableSet.of(Items.TORCH, Items.SOUL_TORCH);
+    private static final TagKey<Item> TORCH_TAG = TagKey.of(RegistryKeys.ITEM, Identifier.of("autotorch", "torches"));
 
     private static final KeyBinding.Category keyCategory = KeyBinding.Category.create(Identifier.of("autotorch", "optioncategory"));
     private static final Logger logger = org.slf4j.LoggerFactory.getLogger("autotorch");
@@ -100,7 +99,7 @@ public class AutotorchClient implements ClientModInitializer {
                 // Volver a comprobar la luz después del retraso
                 if (needsTorch(client, pendingTorchPos)) {
                     placeTorch(pendingTorchPos, pendingHand, pendingSlot);
-                    placeCooldown = CDATA.humanizedDelay ? (6 + (int)(Math.random() * 6)) : 5;
+                    placeCooldown = CDATA.humanizedDelay ? (CDATA.placeCooldownTicks + 1 + (int)(Math.random() * 6)) : CDATA.placeCooldownTicks;
                 }
                 // Limpiar la cola
                 pendingTorchPos = null;
@@ -124,11 +123,11 @@ public class AutotorchClient implements ClientModInitializer {
             int torchSlot = -1;
             Hand placingHand = Hand.MAIN_HAND;
 
-            if (TorchSet.contains(client.player.getOffHandStack().getItem())) {
+            if (client.player.getOffHandStack().isIn(TORCH_TAG)) {
                 placingHand = Hand.OFF_HAND;
             } else {
                 for (int i = 0; i < 9; i++) {
-                    if (TorchSet.contains(client.player.getInventory().getStack(i).getItem())) {
+                    if (client.player.getInventory().getStack(i).isIn(TORCH_TAG)) {
                         torchSlot = i;
                         break;
                     }
@@ -179,8 +178,8 @@ public class AutotorchClient implements ClientModInitializer {
         this.pendingTorchPos = pos;
         this.pendingHand = hand;
         this.pendingSlot = slot;
-        // Esperamos 4 ticks (0.2 segundos) para dar tiempo a que la luz se actualice
-        this.pendingTorchDelay = 4; 
+        // Esperamos unos ticks para dar tiempo a que la luz se actualice
+        this.pendingTorchDelay = CDATA.lightUpdateDelayTicks; 
     }
 
     // El "láser" que evita poner antorchas a través de las paredes
@@ -244,7 +243,7 @@ public class AutotorchClient implements ClientModInitializer {
         if (hand == Hand.MAIN_HAND) {
             // Encolamos el retorno del arma para unos ticks después en vez de hacerlo instantáneamente
             this.revertSlotIndex = currentSlot;
-            this.revertSlotDelay = CDATA.humanizedDelay ? (3 + (int)(Math.random() * 3)) : 2;
+            this.revertSlotDelay = CDATA.humanizedDelay ? (CDATA.slotRevertDelayTicks + 1 + (int)(Math.random() * 3)) : CDATA.slotRevertDelayTicks;
         }
     }
 

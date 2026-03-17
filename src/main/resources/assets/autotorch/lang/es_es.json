@@ -8,6 +8,9 @@
   "text.autoconfig.autotorch.option.accuratePlacement": "Activar Colocación Precisa",
   "text.autoconfig.autotorch.option.requireLineOfSightAngle": "Requerir Línea de Visión",
   "text.autoconfig.autotorch.option.lineOfSightAngle": "Ángulo de Visión (Grados)",
+  "text.autoconfig.autotorch.option.placeCooldownTicks": "Enfriamiento Base (Ticks)",
+  "text.autoconfig.autotorch.option.lightUpdateDelayTicks": "Retraso de Act. de Luz (Ticks)",
+  "text.autoconfig.autotorch.option.slotRevertDelayTicks": "Retraso Retorno de Slot (Ticks)",
 
   "autotorch.message.enabled": "Colocación automática de antorchas activada",
   "autotorch.message.disabled": "Colocación automática de antorchas desactivada",
@@ -15,5 +18,6 @@
 
   "key.category.autotorch.options": "Antorcha Automática",
   "text.autoconfig.autotorch.category.general": "General",
-  "text.autoconfig.autotorch.category.server_friendly": "Amigable con Servidores"
+  "text.autoconfig.autotorch.category.server_friendly": "Amigable con Servidores",
+  "text.autoconfig.autotorch.category.advanced": "Avanzado"
 }

@@ -44,4 +44,20 @@ public class ModConfig implements ConfigData {
     @Comment("The angle of the cone in which to place torches, from 10 to 180 degrees.")
     @ConfigEntry.BoundedDiscrete(min = 10, max = 180)
     int lineOfSightAngle = 120;
+
+    // --- PESTAÑA AVANZADO ---
+    @ConfigEntry.Category("advanced")
+    @Comment("Base cooldown (in ticks) between placing torches")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 40)
+    int placeCooldownTicks = 5;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("Ticks to wait for light level to update before placing a torch")
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 20)
+    int lightUpdateDelayTicks = 4;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("Base delay (in ticks) to return to the previously selected hotbar slot")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
+    int slotRevertDelayTicks = 2;
 }
