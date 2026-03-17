@@ -9,6 +9,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.item.Item;
+import net.minecraft.item.Items;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.BlockItem;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.text.Text;
@@ -21,6 +24,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.block.Block;
+import net.minecraft.block.TorchBlock;
 import net.minecraft.world.LightType;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
@@ -39,7 +43,6 @@ public class AutotorchClient implements ClientModInitializer {
     private MinecraftClient client;
     public ConfigHolder<ModConfig> CONFIG;
     private ModConfig CDATA;
-    private static final TagKey<Item> TORCH_TAG = TagKey.of(RegistryKeys.ITEM, Identifier.of("autotorch", "torches"));
 
     private static final KeyBinding.Category keyCategory = KeyBinding.Category.create(Identifier.of("autotorch", "optioncategory"));
     private static final Logger logger = org.slf4j.LoggerFactory.getLogger("autotorch");
@@ -123,11 +126,11 @@ public class AutotorchClient implements ClientModInitializer {
             int torchSlot = -1;
             Hand placingHand = Hand.MAIN_HAND;
 
-            if (client.player.getOffHandStack().isIn(TORCH_TAG)) {
+            if (isTorch(client.player.getOffHandStack())) {
                 placingHand = Hand.OFF_HAND;
             } else {
                 for (int i = 0; i < 9; i++) {
-                    if (client.player.getInventory().getStack(i).isIn(TORCH_TAG)) {
+                    if (isTorch(client.player.getInventory().getStack(i))) {
                         torchSlot = i;
                         break;
                     }
@@ -168,6 +171,17 @@ public class AutotorchClient implements ClientModInitializer {
                 }
             }
         }
+    }
+
+    private boolean isTorch(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        Item item = stack.getItem();
+        if (item == Items.TORCH || item == Items.SOUL_TORCH) return true;
+        if (item instanceof BlockItem blockItem) {
+            return blockItem.getBlock() instanceof TorchBlock;
+        }
+        // Fallback por si el servidor provee el tag común de la comunidad modder
+        return stack.isIn(TagKey.of(RegistryKeys.ITEM, Identifier.of("c", "torches")));
     }
 
     private boolean needsTorch(MinecraftClient client, BlockPos pos) {
