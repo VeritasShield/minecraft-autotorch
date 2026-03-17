@@ -3,6 +3,7 @@
   "text.autoconfig.autotorch.option.enabled": "Enable Auto Torch",
   "text.autoconfig.autotorch.option.lightLevel": "Minimum Light Level",
   "text.autoconfig.autotorch.option.placementRadius": "Torch Placement Radius",
+  "text.autoconfig.autotorch.option.verticalPlacementRadius": "Vertical Placement Radius (Up/Down)",
   "text.autoconfig.autotorch.option.swingHand": "Swing Hand Animation",
   "text.autoconfig.autotorch.option.humanizedDelay": "Humanized Random Delay",
   "text.autoconfig.autotorch.option.accuratePlacement": "Enable Accurate Torch Placement",
@@ -11,6 +12,8 @@
   "text.autoconfig.autotorch.option.placeCooldownTicks": "Cooldown Base (Ticks)",
   "text.autoconfig.autotorch.option.lightUpdateDelayTicks": "Light Update Delay (Ticks)",
   "text.autoconfig.autotorch.option.slotRevertDelayTicks": "Slot Revert Delay (Ticks)",
+  "text.autoconfig.autotorch.option.placeCooldownVariance": "Cooldown Random Variance",
+  "text.autoconfig.autotorch.option.slotRevertVariance": "Slot Revert Random Variance",
 
   "autotorch.message.enabled": "Enabled automatic torch placement",
   "autotorch.message.disabled": "Disabled automatic torch placement",

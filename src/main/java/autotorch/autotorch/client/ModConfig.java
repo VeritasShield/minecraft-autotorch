@@ -22,6 +22,11 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.BoundedDiscrete(min = 0, max = 4)
     int placementRadius = 3;
 
+    @ConfigEntry.Category("general")
+    @Comment("Max vertical distance (up/down) to place torches")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 4)
+    int verticalPlacementRadius = 1;
+
     // --- PESTAÑA SERVER FRIENDLY ---
     @ConfigEntry.Category("server_friendly")
     @Comment("Forces the player to swing their hand (Bypasses NoSwing checks)")
@@ -60,4 +65,14 @@ public class ModConfig implements ConfigData {
     @Comment("Base delay (in ticks) to return to the previously selected hotbar slot")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
     int slotRevertDelayTicks = 2;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("Max random ticks added to the place cooldown (if humanized delay is on)")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
+    int placeCooldownVariance = 6;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("Max random ticks added to the slot revert delay (if humanized delay is on)")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
+    int slotRevertVariance = 3;
 }

@@ -102,7 +102,7 @@ public class AutotorchClient implements ClientModInitializer {
                 // Volver a comprobar la luz después del retraso
                 if (needsTorch(client, pendingTorchPos)) {
                     placeTorch(pendingTorchPos, pendingHand, pendingSlot);
-                    placeCooldown = CDATA.humanizedDelay ? (CDATA.placeCooldownTicks + 1 + (int)(Math.random() * 6)) : CDATA.placeCooldownTicks;
+                    placeCooldown = CDATA.humanizedDelay ? (CDATA.placeCooldownTicks + 1 + (int)(Math.random() * CDATA.placeCooldownVariance)) : CDATA.placeCooldownTicks;
                 }
                 // Limpiar la cola
                 pendingTorchPos = null;
@@ -153,7 +153,7 @@ public class AutotorchClient implements ClientModInitializer {
             if (CDATA.placementRadius > 0) {
                 for (int r = 1; r <= CDATA.placementRadius; r++) {
                     for (int x = -r; x <= r; x++) {
-                        for (int y = -1; y <= 1; y++) {
+                        for (int y = -CDATA.verticalPlacementRadius; y <= CDATA.verticalPlacementRadius; y++) {
                             for (int z = -r; z <= r; z++) {
                                 if (Math.abs(x) == r || Math.abs(z) == r) {
                                     BlockPos checkPos = playerPos.add(x, y, z);
@@ -257,7 +257,7 @@ public class AutotorchClient implements ClientModInitializer {
         if (hand == Hand.MAIN_HAND) {
             // Encolamos el retorno del arma para unos ticks después en vez de hacerlo instantáneamente
             this.revertSlotIndex = currentSlot;
-            this.revertSlotDelay = CDATA.humanizedDelay ? (CDATA.slotRevertDelayTicks + 1 + (int)(Math.random() * 3)) : CDATA.slotRevertDelayTicks;
+            this.revertSlotDelay = CDATA.humanizedDelay ? (CDATA.slotRevertDelayTicks + 1 + (int)(Math.random() * CDATA.slotRevertVariance)) : CDATA.slotRevertDelayTicks;
         }
     }
 

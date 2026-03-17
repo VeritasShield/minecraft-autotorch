@@ -3,6 +3,7 @@
   "text.autoconfig.autotorch.option.enabled": "Activar Antorcha Automática",
   "text.autoconfig.autotorch.option.lightLevel": "Nivel de Luz Mínimo",
   "text.autoconfig.autotorch.option.placementRadius": "Radio de Colocación",
+  "text.autoconfig.autotorch.option.verticalPlacementRadius": "Radio Vertical (Arriba/Abajo)",
   "text.autoconfig.autotorch.option.swingHand": "Animación de Brazo (Evita kicks)",
   "text.autoconfig.autotorch.option.humanizedDelay": "Retraso Humanizado (Aleatorio)",
   "text.autoconfig.autotorch.option.accuratePlacement": "Activar Colocación Precisa",
@@ -11,6 +12,8 @@
   "text.autoconfig.autotorch.option.placeCooldownTicks": "Enfriamiento Base (Ticks)",
   "text.autoconfig.autotorch.option.lightUpdateDelayTicks": "Retraso de Act. de Luz (Ticks)",
   "text.autoconfig.autotorch.option.slotRevertDelayTicks": "Retraso Retorno de Slot (Ticks)",
+  "text.autoconfig.autotorch.option.placeCooldownVariance": "Variación Aleatoria de Enfriamiento",
+  "text.autoconfig.autotorch.option.slotRevertVariance": "Variación Aleatoria de Retorno de Slot",
 
   "autotorch.message.enabled": "Colocación automática de antorchas activada",
   "autotorch.message.disabled": "Colocación automática de antorchas desactivada",
