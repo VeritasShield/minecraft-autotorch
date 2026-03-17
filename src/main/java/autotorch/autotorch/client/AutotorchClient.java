@@ -99,7 +99,7 @@ public class AutotorchClient implements ClientModInitializer {
             if (AutoPlaceBinding.wasPressed()) {
                 CDATA.enabled = !CDATA.enabled;
                 var msg = CDATA.enabled ? Text.translatable("autotorch.message.enabled") : Text.translatable("autotorch.message.disabled");
-                client.player.sendMessage(msg, false);
+                client.player.sendMessage(msg, true);
             }
             if (!CDATA.enabled) return;
             
