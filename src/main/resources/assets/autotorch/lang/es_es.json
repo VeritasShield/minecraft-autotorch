@@ -20,6 +20,7 @@
   "autotorch.message.disabled": "Colocación automática de antorchas desactivada",
   "autotorch.autotorch.toggle": "Activar/Desactivar Antorcha Automática",
   "autotorch.autotorch.blacklist": "Añadir/Quitar de Lista Negra (Mirando)",
+  "autotorch.autotorch.zoneselector": "Modo Selección Anti-Antorcha",
 
   "key.category.autotorch.options": "Antorcha Automática",
   "text.autoconfig.autotorch.category.general": "General",

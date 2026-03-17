@@ -5,9 +5,13 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.item.ItemStack;
@@ -20,6 +24,7 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.hit.BlockHitResult;
@@ -36,6 +41,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigHolder;
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
+import java.util.ArrayList;
+import java.util.List;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 
@@ -66,6 +73,15 @@ public class AutotorchClient implements ClientModInitializer {
             )
     );
 
+    private static final KeyBinding ZoneSelectionBinding = KeyBindingHelper.registerKeyBinding(
+            new KeyBinding(
+                    "autotorch.autotorch.zoneselector",
+                    InputUtil.Type.KEYSYM,
+                    GLFW.GLFW_KEY_Z,
+                    keyCategory
+            )
+    );
+
     // Evita poner antorchas repetidas mientras el juego procesa la luz
     private int placeCooldown = 0; 
     // Variables para el retardo al romper bloques
@@ -77,6 +93,12 @@ public class AutotorchClient implements ClientModInitializer {
     // Variables para volver al slot anterior de forma natural
     private int revertSlotDelay = 0;
     private int revertSlotIndex = -1;
+    
+    // Variables para el modo Anti-Antorcha (Zonas de exclusión)
+    private boolean zoneSelectionMode = false;
+    private BlockPos pos1 = null;
+    private BlockPos pos2 = null;
+    private final List<Box> excludedZones = new ArrayList<>();
 
     @Override
     public void onInitializeClient() {
@@ -88,6 +110,41 @@ public class AutotorchClient implements ClientModInitializer {
             CDATA = data;
             return ActionResult.SUCCESS;
         });
+
+        // Registrar evento de Click Izquierdo (Punto 1)
+        AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            if (world.isClient() && zoneSelectionMode && player.getMainHandStack().isEmpty()) {
+                pos1 = pos;
+                player.sendMessage(Text.literal("§d[Anti-Antorcha] §fPunto 1 establecido: " + pos.getX() + ", " + pos.getY() + ", " + pos.getZ()), true);
+                checkAndSaveZone(player);
+                return ActionResult.SUCCESS; // Cancela romper el bloque
+            }
+            return ActionResult.PASS;
+        });
+
+        // Registrar evento de Click Derecho (Punto 2)
+        UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+            if (world.isClient() && zoneSelectionMode && player.getStackInHand(hand).isEmpty()) {
+                pos2 = hitResult.getBlockPos();
+                player.sendMessage(Text.literal("§d[Anti-Antorcha] §fPunto 2 establecido: " + pos2.getX() + ", " + pos2.getY() + ", " + pos2.getZ()), true);
+                checkAndSaveZone(player);
+                return ActionResult.SUCCESS; // Cancela la interacción estándar
+            }
+            return ActionResult.PASS;
+        });
+    }
+
+    private void checkAndSaveZone(PlayerEntity player) {
+        if (pos1 != null && pos2 != null) {
+            Box box = new Box(
+                    Math.min(pos1.getX(), pos2.getX()), Math.min(pos1.getY(), pos2.getY()), Math.min(pos1.getZ(), pos2.getZ()),
+                    Math.max(pos1.getX(), pos2.getX()) + 1, Math.max(pos1.getY(), pos2.getY()) + 1, Math.max(pos1.getZ(), pos2.getZ()) + 1
+            );
+            excludedZones.add(box);
+            player.sendMessage(Text.literal("§a[Anti-Antorcha] §f¡Zona de exclusión 3D creada exitosamente!"), false);
+            pos1 = null;
+            pos2 = null;
+        }
     }
 
     public void tick(MinecraftClient client) {
@@ -144,6 +201,22 @@ public class AutotorchClient implements ClientModInitializer {
                         client.player.sendMessage(Text.literal("§a[+] §f" + blockId + " §aañadido a la blacklist."), true);
                     }
                     CONFIG.save(); // Guarda el cambio en el archivo config al instante
+                }
+            }
+
+            if (ZoneSelectionBinding.wasPressed()) {
+                if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+                    excludedZones.clear();
+                    client.player.sendMessage(Text.literal("§c[Anti-Antorcha] §fTodas las zonas de exclusión temporal han sido borradas."), false);
+                } else {
+                    zoneSelectionMode = !zoneSelectionMode;
+                    if (zoneSelectionMode) {
+                        client.player.sendMessage(Text.literal("§d[Anti-Antorcha] §aModo Selección Activado. §fClick Izq/Der con mano vacía para marcar área. (Shift+Z para limpiar)"), false);
+                    } else {
+                        client.player.sendMessage(Text.literal("§d[Anti-Antorcha] §cModo Selección Desactivado."), true);
+                        pos1 = null;
+                        pos2 = null;
+                    }
                 }
             }
 
@@ -297,6 +370,13 @@ public class AutotorchClient implements ClientModInitializer {
 
         if (CDATA.blacklistedBlocks.contains(blockId)) {
             return false;
+        }
+
+        // Comprobar si el bloque está dentro de alguna zona de exclusión
+        for (Box box : excludedZones) {
+            if (box.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) {
+                return false;
+            }
         }
 
         return (client.world.getBlockState(pos).isReplaceable() &&
