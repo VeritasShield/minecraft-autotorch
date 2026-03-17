@@ -25,6 +25,7 @@ import net.minecraft.block.Block;
 import net.minecraft.world.LightType;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
+import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 
@@ -60,6 +61,10 @@ public class AutotorchClient implements ClientModInitializer {
     private BlockPos pendingTorchPos = null;
     private Hand pendingHand = null;
     private int pendingSlot = -1;
+    
+    // Variables para volver al slot anterior de forma natural
+    private int revertSlotDelay = 0;
+    private int revertSlotIndex = -1;
 
     @Override
     public void onInitializeClient() {
@@ -76,6 +81,16 @@ public class AutotorchClient implements ClientModInitializer {
     public void tick(MinecraftClient client) {
         if (placeCooldown > 0) {
             placeCooldown--;
+        }
+
+        // --- SISTEMA DE REVERSIÓN VISUAL DE SLOT ---
+        if (revertSlotDelay > 0) {
+            revertSlotDelay--;
+            if (revertSlotDelay == 0 && revertSlotIndex != -1 && client.player != null) {
+                client.player.getInventory().setSelectedSlot(revertSlotIndex);
+                client.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(revertSlotIndex));
+                revertSlotIndex = -1;
+            }
         }
 
         // --- SISTEMA DE RETRASO PARA BLOQUES ROTOS ---
@@ -201,10 +216,12 @@ public class AutotorchClient implements ClientModInitializer {
     }
 
     private void placeTorch(BlockPos pos, Hand hand, int hotbarSlot) {
-        int previousSlot = client.player.getInventory().getSelectedSlot();
+        int currentSlot = client.player.getInventory().getSelectedSlot();
         
         if (hand == Hand.MAIN_HAND) {
             client.player.getInventory().setSelectedSlot(hotbarSlot);
+            // Notificar al servidor que hemos cambiado a la antorcha para que parezca natural
+            client.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(hotbarSlot));
         }
 
         BlockPos target = pos.down();
@@ -225,7 +242,9 @@ public class AutotorchClient implements ClientModInitializer {
         }
 
         if (hand == Hand.MAIN_HAND) {
-            client.player.getInventory().setSelectedSlot(previousSlot);
+            // Encolamos el retorno del arma para unos ticks después en vez de hacerlo instantáneamente
+            this.revertSlotIndex = currentSlot;
+            this.revertSlotDelay = CDATA.humanizedDelay ? (3 + (int)(Math.random() * 3)) : 2;
         }
     }
 
