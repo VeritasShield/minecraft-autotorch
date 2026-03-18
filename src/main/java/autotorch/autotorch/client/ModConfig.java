@@ -81,4 +81,8 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Category("advanced")
     @Comment("List of block IDs where torches should NEVER be placed (e.g. minecraft:glass)")
     List<String> blacklistedBlocks = new ArrayList<>();
+
+    @ConfigEntry.Category("advanced")
+    @Comment("List of Anti-Torch zones (Format: x1,y1,z1|x2,y2,z2)")
+    public List<String> excludedZones = new ArrayList<>();
 }

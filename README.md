@@ -15,7 +15,7 @@ The original mod was great, but it lacked compatibility with modern server anti-
 * **Smart Placement:** Raycasting prevents placing torches through walls.
 * **Adjustable Radius:** Scan for dark spots horizontally and vertically before you even step on them!
 * **Block Blacklist:** Prevent ruining your builds! Look at any block in-game and press a key to blacklist it so torches are never placed there.
-* **Anti-Torch Zones (WorldEdit Style):** Use an empty hand to left/right click and define 3D exclusion zones where torches will never be placed during your session. Perfect for big builds!
+* **Anti-Torch Zones (WorldEdit Style):** Use an empty hand to left/right click and define 3D exclusion zones. These are saved in your config and can be viewed/deleted via ModMenu. Perfect for big builds!
 * **Advanced Configuration:** Fully customizable cooldowns, update ticks, and random variances directly from the ModMenu screen.
 
 ## ⚙️ Usage
