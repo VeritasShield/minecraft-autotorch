@@ -15,7 +15,7 @@ import net.minecraft.util.math.BlockPos;
 import org.lwjgl.glfw.GLFW;
 
 public class KeybindManager {
-    private static final KeyBinding.Category keyCategory = KeyBinding.Category.create(Identifier.of("autotorch", "optioncategory"));
+    private static final KeyBinding.Category keyCategory = KeyBinding.Category.create(Identifier.of("autotorch", "options"));
 
     private static final KeyBinding AutoPlaceBinding = KeyBindingHelper.registerKeyBinding(
             new KeyBinding(
