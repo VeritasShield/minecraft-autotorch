@@ -85,4 +85,6 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.Category("advanced")
     @Comment("List of Anti-Torch zones (Format: x1,y1,z1|x2,y2,z2)")
     public List<String> excludedZones = new ArrayList<>();
+
+    
 }
