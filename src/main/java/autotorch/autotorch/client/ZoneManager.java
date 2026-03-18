@@ -23,11 +23,14 @@ public class ZoneManager {
         return zoneSelectionMode;
     }
 
-    public void toggleZoneSelectionMode(MinecraftClient client) {
+    public void toggleZoneSelectionMode(MinecraftClient client, ConfigHolder<ModConfig> config, ModConfig cdata) {
         zoneSelectionMode = !zoneSelectionMode;
         if (zoneSelectionMode) {
             client.player.sendMessage(Text.translatable("autotorch.message.selection_mode_on"), true);
         } else {
+            if (pos1 != null && pos2 != null) {
+                saveCurrentZone(client.player, config, cdata);
+            }
             client.player.sendMessage(Text.translatable("autotorch.message.selection_mode_off"), true);
             pos1 = null;
             pos2 = null;
@@ -61,7 +64,7 @@ public class ZoneManager {
         }
     }
 
-    private void checkAndSaveZone(PlayerEntity player, ConfigHolder<ModConfig> config, ModConfig cdata) {
+    private void saveCurrentZone(PlayerEntity player, ConfigHolder<ModConfig> config, ModConfig cdata) {
         if (pos1 != null && pos2 != null) {
             int minX = Math.min(pos1.getX(), pos2.getX());
             int minY = Math.min(pos1.getY(), pos2.getY());
@@ -76,21 +79,17 @@ public class ZoneManager {
             syncZonesFromConfig(cdata); // Recargar en la memoria
 
             player.sendMessage(Text.translatable("autotorch.message.zone_saved", cdata.excludedZones.size()), false);
-            pos1 = null;
-            pos2 = null;
         }
     }
 
-    public void setPos1(BlockPos pos, PlayerEntity player, ConfigHolder<ModConfig> config, ModConfig cdata) {
+    public void setPos1(BlockPos pos, PlayerEntity player) {
         this.pos1 = pos;
         player.sendMessage(Text.translatable("autotorch.message.point1_set", pos.getX(), pos.getY(), pos.getZ()), true);
-        checkAndSaveZone(player, config, cdata);
     }
 
-    public void setPos2(BlockPos pos, PlayerEntity player, ConfigHolder<ModConfig> config, ModConfig cdata) {
+    public void setPos2(BlockPos pos, PlayerEntity player) {
         this.pos2 = pos;
         player.sendMessage(Text.translatable("autotorch.message.point2_set", pos.getX(), pos.getY(), pos.getZ()), true);
-        checkAndSaveZone(player, config, cdata);
     }
 
     public boolean isInExcludedZone(BlockPos pos) {

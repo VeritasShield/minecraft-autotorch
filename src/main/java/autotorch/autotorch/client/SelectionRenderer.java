@@ -8,7 +8,7 @@ import net.minecraft.util.math.Box;
 public class SelectionRenderer {
 
     public static void spawnSelectionParticles(MinecraftClient client, ZoneManager zoneManager) {
-        if (!zoneManager.isZoneSelectionMode() && zoneManager.getExcludedZones().isEmpty() && zoneManager.getPos1() == null && zoneManager.getPos2() == null) return;
+        if (!zoneManager.isZoneSelectionMode()) return;
         
         if (client.player == null || client.world == null) return;
 
@@ -21,6 +21,20 @@ public class SelectionRenderer {
         if (zoneManager.getPos2() != null) {
             drawParticleLineBox(client, new Box(zoneManager.getPos2()), ParticleTypes.FLAME); // Rojo/Naranja
         }
+        
+        // Dibujar previsualización de la zona completa si ambos puntos están establecidos antes de guardarse
+        if (zoneManager.getPos1() != null && zoneManager.getPos2() != null && zoneManager.isZoneSelectionMode()) {
+            Box previewBox = new Box(
+                    Math.min(zoneManager.getPos1().getX(), zoneManager.getPos2().getX()),
+                    Math.min(zoneManager.getPos1().getY(), zoneManager.getPos2().getY()),
+                    Math.min(zoneManager.getPos1().getZ(), zoneManager.getPos2().getZ()),
+                    Math.max(zoneManager.getPos1().getX(), zoneManager.getPos2().getX()) + 1,
+                    Math.max(zoneManager.getPos1().getY(), zoneManager.getPos2().getY()) + 1,
+                    Math.max(zoneManager.getPos1().getZ(), zoneManager.getPos2().getZ()) + 1
+            );
+            drawParticleLineBox(client, previewBox, ParticleTypes.END_ROD); // Blanco brillante
+        }
+
         for (Box box : zoneManager.getExcludedZones()) {
             drawParticleLineBox(client, box, ParticleTypes.HAPPY_VILLAGER); // Verde
         }

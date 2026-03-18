@@ -54,7 +54,7 @@ public class AutotorchClient implements ClientModInitializer {
         // Registrar evento de Click Izquierdo (Punto 1)
         AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
             if (world.isClient() && hand == Hand.MAIN_HAND && zoneManager.isZoneSelectionMode() && player.getMainHandStack().isEmpty()) {
-                zoneManager.setPos1(pos, player, CONFIG, CDATA);
+                zoneManager.setPos1(pos, player);
                 return ActionResult.SUCCESS; // Cancela romper el bloque
             }
             return ActionResult.PASS;
@@ -63,7 +63,7 @@ public class AutotorchClient implements ClientModInitializer {
         // Registrar evento de Click Derecho (Punto 2)
         UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
             if (world.isClient() && hand == Hand.MAIN_HAND && zoneManager.isZoneSelectionMode() && player.getMainHandStack().isEmpty()) {
-                zoneManager.setPos2(hitResult.getBlockPos(), player, CONFIG, CDATA);
+                zoneManager.setPos2(hitResult.getBlockPos(), player);
                 return ActionResult.SUCCESS; // Cancela la interacción estándar
             }
             return ActionResult.PASS;

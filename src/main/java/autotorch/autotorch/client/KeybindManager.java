@@ -77,7 +77,7 @@ public class KeybindManager {
             if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
                 zoneManager.clearZones(client, config, cdata);
             } else {
-                zoneManager.toggleZoneSelectionMode(client);
+                zoneManager.toggleZoneSelectionMode(client, config, cdata);
             }
         }
     }
