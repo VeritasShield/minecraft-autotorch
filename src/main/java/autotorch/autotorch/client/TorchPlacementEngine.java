@@ -70,6 +70,9 @@ public class TorchPlacementEngine {
         // Si estamos en cooldown o esperando para poner una antorcha, no buscamos más
         if (placeCooldown > 0 || pendingTorchPos != null) return;
 
+        // --- SISTEMA DE THROTTLING DE ESCANEO ---
+        if (client.level.getGameTime() % cdata.scanDelayTicks != 0) return;
+
         int torchSlot = -1;
         InteractionHand placingHand = InteractionHand.MAIN_HAND;
 
@@ -150,8 +153,18 @@ public class TorchPlacementEngine {
 
         BlockPos target = pos.below();
         
-        if (cdata.accuratePlacement) {
-            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(client.player.getYRot(), 90.0F, true, false));
+        if (cdata.advancedPacketSpoofing) {
+            Vec3 start = client.player.getEyePosition();
+            Vec3 targetVec = Vec3.atCenterOf(target);
+            double dx = targetVec.x - start.x;
+            double dy = targetVec.y - start.y;
+            double dz = targetVec.z - start.z;
+            double diffXZ = Math.sqrt(dx * dx + dz * dz);
+            float yaw = (float) (Math.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
+            float pitch = (float) -(Math.atan2(dy, diffXZ) * (180.0 / Math.PI));
+            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, client.player.onGround(), false));
+        } else if (cdata.accuratePlacement) {
+            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(client.player.getYRot(), 90.0F, client.player.onGround(), false));
         }
         
         InteractionResult result = client.gameMode.useItemOn(client.player, hand, new BlockHitResult(Vec3.atCenterOf(target), Direction.UP, target, false));

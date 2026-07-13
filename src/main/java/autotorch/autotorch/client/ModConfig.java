@@ -44,6 +44,10 @@ public class ModConfig implements ConfigData {
     boolean accuratePlacement = false;
 
     @ConfigEntry.Category("server_friendly")
+    @Comment("Advanced Math: Calculate exact pitch/yaw to target block (Bypass strict Anti-Cheats)")
+    boolean advancedPacketSpoofing = false;
+
+    @ConfigEntry.Category("server_friendly")
     @Comment("Only place torches in the general direction you are looking (FOV check)")
     boolean requireLineOfSightAngle = true;
 
@@ -53,6 +57,11 @@ public class ModConfig implements ConfigData {
     int lineOfSightAngle = 120;
 
     // --- PESTAÑA AVANZADO ---
+    @ConfigEntry.Category("advanced")
+    @Comment("Tick delay between full 3D scans. Increase to save CPU on large radiuses.")
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 20)
+    int scanDelayTicks = 2;
+
     @ConfigEntry.Category("advanced")
     @Comment("Base cooldown (in ticks) between placing torches")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 40)

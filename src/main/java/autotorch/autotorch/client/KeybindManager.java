@@ -74,8 +74,13 @@ public class KeybindManager {
         }
 
         if (ZoneSelectionBinding.consumeClick()) {
-            if (InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+            boolean shift = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+            boolean ctrl = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
+            
+            if (ctrl) {
                 zoneManager.clearZones(client, config, cdata);
+            } else if (shift) {
+                zoneManager.deleteCurrentZone(client, config, cdata);
             } else {
                 zoneManager.toggleZoneSelectionMode(client, config, cdata);
             }

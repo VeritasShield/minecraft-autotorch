@@ -44,6 +44,28 @@ public class ZoneManager {
         client.player.sendOverlayMessage(Component.translatable("autotorch.message.zones_cleared"));
     }
 
+    public void deleteCurrentZone(Minecraft client, ConfigHolder<ModConfig> config, ModConfig cdata) {
+        BlockPos pos = client.player.blockPosition();
+        boolean removed = false;
+        
+        // Iterate backwards to safely remove from the lists
+        for (int i = excludedZones.size() - 1; i >= 0; i--) {
+            AABB box = excludedZones.get(i);
+            if (box.contains(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) {
+                cdata.excludedZones.remove(i);
+                removed = true;
+            }
+        }
+        
+        if (removed) {
+            config.save();
+            syncZonesFromConfig(cdata);
+            client.player.sendOverlayMessage(Component.translatable("autotorch.message.zone_deleted"));
+        } else {
+            client.player.sendOverlayMessage(Component.translatable("autotorch.message.not_in_zone"));
+        }
+    }
+
     public void syncZonesFromConfig(ModConfig cdata) {
         excludedZones.clear();
         for (String zoneStr : cdata.excludedZones) {
