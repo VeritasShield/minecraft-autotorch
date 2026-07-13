@@ -13,10 +13,14 @@ public class ModMenuIntegration implements ModMenuApi {
         return parent -> {
             try {
                 Class<?> autoConfigClass = Class.forName("me.shedaniel.autoconfig.AutoConfig");
-                Method getConfigScreen = autoConfigClass.getMethod("getConfigScreen", Class.class, Screen.class);
-                @SuppressWarnings("unchecked")
-                Supplier<Screen> supplier = (Supplier<Screen>) getConfigScreen.invoke(null, ModConfig.class, parent);
-                return supplier.get();
+                for (Method method : autoConfigClass.getMethods()) {
+                    if (method.getName().equals("getConfigScreen") && method.getParameterCount() == 2) {
+                        @SuppressWarnings("unchecked")
+                        Supplier<Screen> supplier = (Supplier<Screen>) method.invoke(null, ModConfig.class, parent);
+                        return supplier.get();
+                    }
+                }
+                return parent;
             } catch (Exception e) {
                 e.printStackTrace();
                 return parent;

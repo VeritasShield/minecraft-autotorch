@@ -16,6 +16,8 @@
   "text.autoconfig.autotorch.option.slotRevertVariance": "Slot Revert Random Variance",
   "text.autoconfig.autotorch.option.blacklistedBlocks": "Blacklisted Blocks (IDs)",
   "text.autoconfig.autotorch.option.excludedZones": "Anti-Torch Zones (x,y,z|x,y,z)",
+  "text.autoconfig.autotorch.option.advancedPacketSpoofing": "Advanced Packet Spoofing (Anti-Cheat Math)",
+  "text.autoconfig.autotorch.option.scanDelayTicks": "Scan Delay Ticks (Scanner Throttling)",
 
   "autotorch.message.enabled": "Enabled automatic torch placement",
   "autotorch.message.disabled": "Disabled automatic torch placement",
@@ -30,7 +32,10 @@
   "autotorch.message.zones_cleared": "§c[Anti-Torch] §fAll saved exclusion zones have been cleared.",
   "autotorch.message.selection_mode_on": "§d[Anti-Torch] §aSelection Mode Enabled. §fEmpty hand L/R Click to mark area. (Shift+Z to clear)",
   "autotorch.message.selection_mode_off": "§d[Anti-Torch] §cSelection Mode Disabled.",
+  "autotorch.message.zone_deleted": "§c[Anti-Torch] §fCurrent zone deleted.",
+  "autotorch.message.not_in_zone": "§c[Anti-Torch] §cYou are not inside any zone.",
 
+  "key.categories.autotorch.options": "Auto Torch",
   "key.category.autotorch.options": "Auto Torch",
   "autotorch.optioncategory": "Auto Torch",
   "text.autoconfig.autotorch.category.general": "General",

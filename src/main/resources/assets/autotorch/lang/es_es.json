@@ -16,6 +16,8 @@
   "text.autoconfig.autotorch.option.slotRevertVariance": "Variación Aleatoria de Retorno de Slot",
   "text.autoconfig.autotorch.option.blacklistedBlocks": "Bloques en Lista Negra (IDs)",
   "text.autoconfig.autotorch.option.excludedZones": "Zonas Anti-Antorcha (x,y,z|x,y,z)",
+  "text.autoconfig.autotorch.option.advancedPacketSpoofing": "Advanced Packet Spoofing (Vectores Matemáticos Anti-Cheat)",
+  "text.autoconfig.autotorch.option.scanDelayTicks": "Retraso del Escáner (Ticks - Optimiza CPU)",
 
   "autotorch.message.enabled": "Colocación automática de antorchas activada",
   "autotorch.message.disabled": "Colocación automática de antorchas desactivada",
@@ -30,7 +32,10 @@
   "autotorch.message.zones_cleared": "§c[Anti-Antorcha] §fTodas las zonas de exclusión guardadas han sido borradas.",
   "autotorch.message.selection_mode_on": "§d[Anti-Antorcha] §aModo Selección Activado. §fClick Izq/Der con mano vacía para marcar área. (Shift+Z para limpiar)",
   "autotorch.message.selection_mode_off": "§d[Anti-Antorcha] §cModo Selección Desactivado.",
+  "autotorch.message.zone_deleted": "§c[Anti-Antorcha] §fZona actual borrada exitosamente.",
+  "autotorch.message.not_in_zone": "§c[Anti-Antorcha] §cNo estás dentro de ninguna zona actualmente.",
 
+  "key.categories.autotorch.options": "Antorcha Automática",
   "key.category.autotorch.options": "Antorcha Automática",
   "autotorch.optioncategory": "Antorcha Automática",
   "text.autoconfig.autotorch.category.general": "General",

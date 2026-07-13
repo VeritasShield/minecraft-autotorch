@@ -1,4 +1,4 @@
-## Auto Torch Enhanced v2.2.0 (Minecraft 26.2)
+## Auto Torch Enhanced v2.2.1 (Minecraft 26.2)
 
 This release brings full compatibility with Minecraft 26.2 and includes massive logic and UX upgrades:
 

@@ -13,11 +13,11 @@
 ## 3. Arquitectura del Código
 El mod está estructurado dentro de `src/main/java/autotorch/autotorch/client/`:
 * `AutotorchClient`: Punto de entrada (`ClientModInitializer`). Registra los eventos de Ticks del cliente, HUD, y carga la configuración.
-* `TorchPlacementEngine`: El motor lógico principal. Se ejecuta en cada Tick. Realiza un escaneo volumétrico (3D) buscando niveles de luz bajos y administra los delays (cooldowns), el manejo del inventario (`getSelectedSlot`) y la simulación del paquete de rotación/uso de antorchas.
-* `ZoneManager`: Permite al usuario delimitar zonas espaciales (WorldEdit-style) donde el mod tiene estrictamente prohibido actuar. Guarda las coordenadas en la configuración y las parsea a `AABB` geométricas para validaciones rápidas (`O(N)`).
+* `TorchPlacementEngine`: El motor lógico principal. Se ejecuta en cada Tick. Realiza un escaneo volumétrico (3D) buscando niveles de luz bajos. Incluye optimizaciones como **Throttling (`scanDelayTicks`)** para reducir el impacto en CPU al evitar escaneos en cada tick, y **Advanced Packet Spoofing** para enviar paquetes matemáticamente precisos de rotación (*Pitch/Yaw*) hacia la cara superior del bloque antes de colocar la antorcha.
+* `ZoneManager`: Permite al usuario delimitar zonas espaciales (WorldEdit-style) donde el mod tiene estrictamente prohibido actuar. Guarda las coordenadas en la configuración y las parsea a `AABB` geométricas para validaciones rápidas (`O(N)`). Ahora incluye lógica para borrar directamente el `AABB` actual si el jugador se encuentra dentro.
 * `ModConfig`: Esquema de configuración (utiliza `me.shedaniel.autoconfig`). Guarda datos de listas negras, tiempos de espera humanos, radios de acción y niveles de luz.
-* `KeybindManager`: Registra los atajos de teclado (`KeyMapping.Category.register`) usando la API actualizada de Fabric 26.2.
-* `SelectionRenderer`: Dibuja una "bounding box" visual utilizando la API de Renderizado de Fabric cuando el usuario está definiendo una `Zone` con el `ZoneManager`.
+* `KeybindManager`: Registra los atajos de teclado (`KeyMapping.Category.register`). Controla eventos avanzados como `Shift + Z` (borrar zona actual) o `Ctrl + Z` (borrar todas las zonas).
+* `SelectionRenderer`: Dibuja "bounding boxes" visuales (partículas) cuando el usuario está definiendo una `Zone` o cuando las está previsualizando en modo selección (`zoneSelectionMode`).
 * `RaycastUtils`: Utilidades de matemáticas de vectores para trazar la línea de visión (Line Of Sight / FOV) del jugador y evitar poner antorchas a través de bloques u obstáculos.
 
 ## 4. Notas Críticas de Desarrollo y Problemas Conocidos (Workarounds)
