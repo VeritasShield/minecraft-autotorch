@@ -1,26 +1,26 @@
 package autotorch.autotorch.client;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.TorchBlock;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.LightType;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.TorchBlock;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.LightLayer;
 
 public class TorchPlacementEngine {
     // Evita poner antorchas repetidas mientras el juego procesa la luz
@@ -28,14 +28,14 @@ public class TorchPlacementEngine {
     // Variables para el retardo al romper bloques
     private int pendingTorchDelay = 0;
     private BlockPos pendingTorchPos = null;
-    private Hand pendingHand = null;
+    private InteractionHand pendingHand = null;
     private int pendingSlot = -1;
     
     // Variables para volver al slot anterior de forma natural
     private int revertSlotDelay = 0;
     private int revertSlotIndex = -1;
 
-    public void tick(MinecraftClient client, ModConfig cdata, ZoneManager zoneManager) {
+    public void tick(Minecraft client, ModConfig cdata, ZoneManager zoneManager) {
         if (placeCooldown > 0) {
             placeCooldown--;
         }
@@ -45,7 +45,7 @@ public class TorchPlacementEngine {
             revertSlotDelay--;
             if (revertSlotDelay == 0 && revertSlotIndex != -1 && client.player != null) {
                 client.player.getInventory().setSelectedSlot(revertSlotIndex);
-                client.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(revertSlotIndex));
+                client.player.connection.send(new ServerboundSetCarriedItemPacket(revertSlotIndex));
                 revertSlotIndex = -1;
             }
         }
@@ -53,7 +53,7 @@ public class TorchPlacementEngine {
         // --- SISTEMA DE RETRASO PARA BLOQUES ROTOS ---
         if (pendingTorchDelay > 0) {
             pendingTorchDelay--;
-            if (pendingTorchDelay == 0 && pendingTorchPos != null && client.world != null) {
+            if (pendingTorchDelay == 0 && pendingTorchPos != null && client.level != null) {
                 if (needsTorch(client, pendingTorchPos, cdata, zoneManager)) {
                     placeTorch(client, pendingTorchPos, pendingHand, pendingSlot, cdata);
                     placeCooldown = cdata.humanizedDelay ? (cdata.placeCooldownTicks + 1 + (int)(Math.random() * cdata.placeCooldownVariance)) : cdata.placeCooldownTicks;
@@ -65,30 +65,30 @@ public class TorchPlacementEngine {
         }
         // ---------------------------------------------
 
-        if (client.player == null || client.world == null) return;
+        if (client.player == null || client.level == null) return;
         if (!cdata.enabled) return;
         // Si estamos en cooldown o esperando para poner una antorcha, no buscamos más
         if (placeCooldown > 0 || pendingTorchPos != null) return;
 
         int torchSlot = -1;
-        Hand placingHand = Hand.MAIN_HAND;
+        InteractionHand placingHand = InteractionHand.MAIN_HAND;
 
-        if (isTorch(client.player.getOffHandStack())) {
-            placingHand = Hand.OFF_HAND;
+        if (isTorch(client.player.getOffhandItem())) {
+            placingHand = InteractionHand.OFF_HAND;
         } else {
             for (int i = 0; i < 9; i++) {
-                if (isTorch(client.player.getInventory().getStack(i))) {
+                if (isTorch(client.player.getInventory().getItem(i))) {
                     torchSlot = i;
                     break;
                 }
             }
         }
 
-        if (placingHand == Hand.MAIN_HAND && torchSlot == -1) {
+        if (placingHand == InteractionHand.MAIN_HAND && torchSlot == -1) {
             return;
         }
 
-        BlockPos playerPos = client.player.getBlockPos();
+        BlockPos playerPos = client.player.blockPosition();
 
         // 1. PRIORIDAD: Justo debajo de los pies
         if (needsTorch(client, playerPos, cdata, zoneManager)) {
@@ -103,7 +103,7 @@ public class TorchPlacementEngine {
                     for (int y = -cdata.verticalPlacementRadius; y <= cdata.verticalPlacementRadius; y++) {
                         for (int z = -r; z <= r; z++) {
                             if (Math.abs(x) == r || Math.abs(z) == r) {
-                                BlockPos checkPos = playerPos.add(x, y, z);
+                                BlockPos checkPos = playerPos.offset(x, y, z);
                                 
                                 if (needsTorch(client, checkPos, cdata, zoneManager) && RaycastUtils.hasLineOfSight(client, checkPos)) {
                                     if (!cdata.requireLineOfSightAngle || RaycastUtils.isLookingAt(client, checkPos, cdata)) {
@@ -126,55 +126,55 @@ public class TorchPlacementEngine {
         if (item instanceof BlockItem blockItem) {
             return blockItem.getBlock() instanceof TorchBlock;
         }
-        return stack.isIn(TagKey.of(RegistryKeys.ITEM, Identifier.of("c", "torches")));
+        return stack.typeHolder().is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "torches")));
     }
 
-    private boolean needsTorch(MinecraftClient client, BlockPos pos, ModConfig cdata, ZoneManager zoneManager) {
-        return client.world.getLightLevel(LightType.BLOCK, pos) < cdata.lightLevel && canPlaceTorch(client, pos, cdata, zoneManager);
+    private boolean needsTorch(Minecraft client, BlockPos pos, ModConfig cdata, ZoneManager zoneManager) {
+        return client.level.getBrightness(LightLayer.BLOCK, pos) < cdata.lightLevel && canPlaceTorch(client, pos, cdata, zoneManager);
     }
 
-    private void queueTorchPlacement(BlockPos pos, Hand hand, int slot, ModConfig cdata) {
+    private void queueTorchPlacement(BlockPos pos, InteractionHand hand, int slot, ModConfig cdata) {
         this.pendingTorchPos = pos;
         this.pendingHand = hand;
         this.pendingSlot = slot;
         this.pendingTorchDelay = cdata.lightUpdateDelayTicks; 
     }
 
-    private void placeTorch(MinecraftClient client, BlockPos pos, Hand hand, int hotbarSlot, ModConfig cdata) {
+    private void placeTorch(Minecraft client, BlockPos pos, InteractionHand hand, int hotbarSlot, ModConfig cdata) {
         int currentSlot = client.player.getInventory().getSelectedSlot();
         
-        if (hand == Hand.MAIN_HAND) {
+        if (hand == InteractionHand.MAIN_HAND) {
             client.player.getInventory().setSelectedSlot(hotbarSlot);
-            client.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(hotbarSlot));
+            client.player.connection.send(new ServerboundSetCarriedItemPacket(hotbarSlot));
         }
 
-        BlockPos target = pos.down();
+        BlockPos target = pos.below();
         
         if (cdata.accuratePlacement) {
-            client.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(client.player.getYaw(), 90.0F, true, false));
+            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(client.player.getYRot(), 90.0F, true, false));
         }
         
-        ActionResult result = client.interactionManager.interactBlock(client.player, hand, new BlockHitResult(Vec3d.ofCenter(target), Direction.UP, target, false));
+        InteractionResult result = client.gameMode.useItemOn(client.player, hand, new BlockHitResult(Vec3.atCenterOf(target), Direction.UP, target, false));
                 
-        if ((result == ActionResult.PASS || result == ActionResult.SUCCESS) && cdata.swingHand) {
-            client.player.swingHand(hand);
+        if ((result == InteractionResult.PASS || result == InteractionResult.SUCCESS) && cdata.swingHand) {
+            client.player.swing(hand);
         }
 
-        if (hand == Hand.MAIN_HAND) {
+        if (hand == InteractionHand.MAIN_HAND) {
             this.revertSlotIndex = currentSlot;
             this.revertSlotDelay = cdata.humanizedDelay ? (cdata.slotRevertDelayTicks + 1 + (int)(Math.random() * cdata.slotRevertVariance)) : cdata.slotRevertDelayTicks;
         }
     }
 
-    public boolean canPlaceTorch(MinecraftClient client, BlockPos pos, ModConfig cdata, ZoneManager zoneManager) {
-        BlockPos supportPos = pos.down();
-        Block supportBlock = client.world.getBlockState(supportPos).getBlock();
-        String blockId = Registries.BLOCK.getId(supportBlock).toString();
+    public boolean canPlaceTorch(Minecraft client, BlockPos pos, ModConfig cdata, ZoneManager zoneManager) {
+        BlockPos supportPos = pos.below();
+        Block supportBlock = client.level.getBlockState(supportPos).getBlock();
+        String blockId = BuiltInRegistries.BLOCK.getKey(supportBlock).toString();
 
         if (cdata.blacklistedBlocks.contains(blockId) || zoneManager.isInExcludedZone(pos)) return false;
 
-        return (client.world.getBlockState(pos).isReplaceable() &&
-                client.world.getBlockState(pos).getFluidState().isEmpty() &&
-                Block.sideCoversSmallSquare(client.world, supportPos, Direction.UP));
+        return (client.level.getBlockState(pos).canBeReplaced() &&
+                client.level.getBlockState(pos).getFluidState().isEmpty() &&
+                Block.canSupportCenter(client.level, supportPos, Direction.UP));
     }
 }

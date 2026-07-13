@@ -1,44 +1,44 @@
 package autotorch.autotorch.client;
 
 import me.shedaniel.autoconfig.ConfigHolder;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.minecraft.block.Block;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.core.BlockPos;
 import org.lwjgl.glfw.GLFW;
 
 public class KeybindManager {
-    private static final KeyBinding.Category keyCategory = KeyBinding.Category.create(Identifier.of("autotorch", "options"));
+    private static final KeyMapping.Category keyCategory = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("autotorch", "options"));
 
-    private static final KeyBinding AutoPlaceBinding = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding(
+    private static final KeyMapping AutoPlaceBinding = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
                     "autotorch.autotorch.toggle",
-                    InputUtil.Type.KEYSYM,
+                    InputConstants.Type.KEYSYM,
                     GLFW.GLFW_KEY_LEFT_ALT,
                     keyCategory
             )
     );
 
-    private static final KeyBinding BlacklistBinding = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding(
+    private static final KeyMapping BlacklistBinding = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
                     "autotorch.autotorch.blacklist",
-                    InputUtil.Type.KEYSYM,
+                    InputConstants.Type.KEYSYM,
                     GLFW.GLFW_KEY_B,
                     keyCategory
             )
     );
 
-    private static final KeyBinding ZoneSelectionBinding = KeyBindingHelper.registerKeyBinding(
-            new KeyBinding(
+    private static final KeyMapping ZoneSelectionBinding = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
                     "autotorch.autotorch.zoneselector",
-                    InputUtil.Type.KEYSYM,
+                    InputConstants.Type.KEYSYM,
                     GLFW.GLFW_KEY_Z,
                     keyCategory
             )
@@ -48,33 +48,33 @@ public class KeybindManager {
         // Invocar este método vacío asegura que Java cargue la clase y registre los controles
     }
 
-    public static void handleInputs(MinecraftClient client, ConfigHolder<ModConfig> config, ModConfig cdata, ZoneManager zoneManager) {
-        if (AutoPlaceBinding.wasPressed()) {
+    public static void handleInputs(Minecraft client, ConfigHolder<ModConfig> config, ModConfig cdata, ZoneManager zoneManager) {
+        if (AutoPlaceBinding.consumeClick()) {
             cdata.enabled = !cdata.enabled;
-            var msg = cdata.enabled ? Text.translatable("autotorch.message.enabled") : Text.translatable("autotorch.message.disabled");
-            client.player.sendMessage(msg, true);
+            var msg = cdata.enabled ? Component.translatable("autotorch.message.enabled") : Component.translatable("autotorch.message.disabled");
+            client.player.sendOverlayMessage(msg);
         }
 
-        if (BlacklistBinding.wasPressed()) {
-            HitResult hit = client.crosshairTarget;
+        if (BlacklistBinding.consumeClick()) {
+            HitResult hit = client.hitResult;
             if (hit != null && hit.getType() == HitResult.Type.BLOCK) {
                 BlockPos pos = ((BlockHitResult) hit).getBlockPos();
-                Block block = client.world.getBlockState(pos).getBlock();
-                String blockId = Registries.BLOCK.getId(block).toString();
+                Block block = client.level.getBlockState(pos).getBlock();
+                String blockId = BuiltInRegistries.BLOCK.getKey(block).toString();
                 
                 if (cdata.blacklistedBlocks.contains(blockId)) {
                     cdata.blacklistedBlocks.remove(blockId);
-                    client.player.sendMessage(Text.translatable("autotorch.message.blacklist_removed", blockId), true);
+                    client.player.sendOverlayMessage(Component.translatable("autotorch.message.blacklist_removed", blockId));
                 } else {
                     cdata.blacklistedBlocks.add(blockId);
-                    client.player.sendMessage(Text.translatable("autotorch.message.blacklist_added", blockId), true);
+                    client.player.sendOverlayMessage(Component.translatable("autotorch.message.blacklist_added", blockId));
                 }
                 config.save(); // Guarda el cambio en el archivo config al instante
             }
         }
 
-        if (ZoneSelectionBinding.wasPressed()) {
-            if (InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
+        if (ZoneSelectionBinding.consumeClick()) {
+            if (InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT)) {
                 zoneManager.clearZones(client, config, cdata);
             } else {
                 zoneManager.toggleZoneSelectionMode(client, config, cdata);

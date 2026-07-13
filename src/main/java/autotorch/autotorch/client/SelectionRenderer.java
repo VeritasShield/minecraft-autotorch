@@ -1,30 +1,30 @@
 package autotorch.autotorch.client;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.util.math.Box;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.phys.AABB;
 
 public class SelectionRenderer {
 
-    public static void spawnSelectionParticles(MinecraftClient client, ZoneManager zoneManager) {
+    public static void spawnSelectionParticles(Minecraft client, ZoneManager zoneManager) {
         if (!zoneManager.isZoneSelectionMode()) return;
         
-        if (client.player == null || client.world == null) return;
+        if (client.player == null || client.level == null) return;
 
         // Limitamos la generación a 1 vez cada 5 ticks (4 veces por segundo) para evitar alcanzar el límite de partículas de Minecraft
-        if (client.world.getTime() % 5 != 0) return; 
+        if (client.level.getGameTime() % 5 != 0) return; 
 
         if (zoneManager.getPos1() != null) {
-            drawParticleLineBox(client, new Box(zoneManager.getPos1()), ParticleTypes.SOUL_FIRE_FLAME); // Azul
+            drawParticleLineBox(client, new AABB(zoneManager.getPos1()), ParticleTypes.SOUL_FIRE_FLAME); // Azul
         }
         if (zoneManager.getPos2() != null) {
-            drawParticleLineBox(client, new Box(zoneManager.getPos2()), ParticleTypes.FLAME); // Rojo/Naranja
+            drawParticleLineBox(client, new AABB(zoneManager.getPos2()), ParticleTypes.FLAME); // Rojo/Naranja
         }
         
         // Dibujar previsualización de la zona completa si ambos puntos están establecidos antes de guardarse
         if (zoneManager.getPos1() != null && zoneManager.getPos2() != null && zoneManager.isZoneSelectionMode()) {
-            Box previewBox = new Box(
+            AABB previewBox = new AABB(
                     Math.min(zoneManager.getPos1().getX(), zoneManager.getPos2().getX()),
                     Math.min(zoneManager.getPos1().getY(), zoneManager.getPos2().getY()),
                     Math.min(zoneManager.getPos1().getZ(), zoneManager.getPos2().getZ()),
@@ -35,12 +35,12 @@ public class SelectionRenderer {
             drawParticleLineBox(client, previewBox, ParticleTypes.END_ROD); // Blanco brillante
         }
 
-        for (Box box : zoneManager.getExcludedZones()) {
+        for (AABB box : zoneManager.getExcludedZones()) {
             drawParticleLineBox(client, box, ParticleTypes.HAPPY_VILLAGER); // Verde
         }
     }
 
-    private static void drawParticleLineBox(MinecraftClient client, Box box, ParticleEffect particleType) {
+    private static void drawParticleLineBox(Minecraft client, AABB box, ParticleOptions particleType) {
         // En lugar de partículas aleatorias en las caras, dibujamos puntos específicos a lo largo de las 12 aristas de la caja
         
         // Aristas inferiores
@@ -62,7 +62,7 @@ public class SelectionRenderer {
         spawnParticleLine(client, particleType, box.minX, box.minY, box.maxZ, box.minX, box.maxY, box.maxZ);
     }
 
-    private static void spawnParticleLine(MinecraftClient client, ParticleEffect type, double x1, double y1, double z1, double x2, double y2, double z2) {
+    private static void spawnParticleLine(Minecraft client, ParticleOptions type, double x1, double y1, double z1, double x2, double y2, double z2) {
         // Calcula cuántas partículas necesitamos poner en esta línea
         double distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) + Math.pow(z2 - z1, 2));
         
@@ -79,7 +79,7 @@ public class SelectionRenderer {
             double pz = z1 + (z2 - z1) * fraction;
 
             // Añadimos la partícula. Al tener velocidad 0.0, se quedan casi estáticas simulando una línea flotante
-            client.particleManager.addParticle(type, px, py, pz, 0.0, 0.0, 0.0);
+            client.particleEngine.createParticle(type, px, py, pz, 0.0, 0.0, 0.0);
         }
     }
 }

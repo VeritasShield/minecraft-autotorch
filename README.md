@@ -27,5 +27,5 @@ The original mod was great, but it lacked compatibility with modern server anti-
 
 ## 📜 Credits & License
 * Original concept and base code by [noteness (necessary129)](https://github.com/necessary129/minecraft-autotorch).
-* Updated to 1.21.11, completely rewritten logic, and anti-cheat modules by [VeritasShield].
+* Updated to Minecraft 26.2, completely rewritten logic, and anti-cheat modules by [VeritasShield].
 * Licensed under GNU LGPL-3.0.
