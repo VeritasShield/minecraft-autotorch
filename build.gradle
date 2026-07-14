@@ -51,9 +51,11 @@ dependencies {
     // You may need to force-disable transitiveness on them.
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     // Cloth Config API
-    modImplementation "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_version}"
+    implementation("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
     include "me.shedaniel.cloth:cloth-config-fabric:${project.cloth_version}"
-    modImplementation "maven.modrinth:modmenu:${project.modmenu_version}"
+    implementation "maven.modrinth:modmenu:${project.modmenu_version}"
 
 }
 
