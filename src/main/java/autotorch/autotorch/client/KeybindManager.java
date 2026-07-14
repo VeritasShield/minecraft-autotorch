@@ -44,6 +44,24 @@ public class KeybindManager {
             )
     );
 
+    private static final KeyMapping ZoneDeleteBinding = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
+                    "autotorch.autotorch.zonedelete",
+                    InputConstants.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    keyCategory
+            )
+    );
+
+    private static final KeyMapping ZoneClearAllBinding = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping(
+                    "autotorch.autotorch.zoneclearall",
+                    InputConstants.Type.KEYSYM,
+                    GLFW.GLFW_KEY_UNKNOWN,
+                    keyCategory
+            )
+    );
+
     public static void init() {
         // Invocar este método vacío asegura que Java cargue la clase y registre los controles
     }
@@ -73,17 +91,16 @@ public class KeybindManager {
             }
         }
 
+        if (ZoneDeleteBinding.consumeClick()) {
+            zoneManager.deleteCurrentZone(client, config, cdata);
+        }
+
+        if (ZoneClearAllBinding.consumeClick()) {
+            zoneManager.clearZones(client, config, cdata);
+        }
+
         if (ZoneSelectionBinding.consumeClick()) {
-            boolean shift = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
-            boolean ctrl = InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_LEFT_CONTROL) || InputConstants.isKeyDown(client.getWindow(), GLFW.GLFW_KEY_RIGHT_CONTROL);
-            
-            if (ctrl) {
-                zoneManager.clearZones(client, config, cdata);
-            } else if (shift) {
-                zoneManager.deleteCurrentZone(client, config, cdata);
-            } else {
-                zoneManager.toggleZoneSelectionMode(client, config, cdata);
-            }
+            zoneManager.toggleZoneSelectionMode(client, config, cdata);
         }
     }
 }
