@@ -21,7 +21,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.inventory.ClickType;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.inventory.ContainerInput;
 
 public class TorchPlacementEngine {
     private int placeCooldown = 0; 
@@ -49,7 +51,7 @@ public class TorchPlacementEngine {
                 }
                 if (revertInventorySwapSource != -1 && revertInventorySwapTarget != -1) {
                     // Swap back the item from hotbar to inventory
-                    client.gameMode.handleInventoryMouseClick(0, revertInventorySwapSource, revertInventorySwapTarget, ClickType.SWAP, client.player);
+                    client.gameMode.handleContainerInput(0, revertInventorySwapSource, revertInventorySwapTarget, ContainerInput.SWAP, client.player);
                     revertInventorySwapSource = -1;
                     revertInventorySwapTarget = -1;
                 }
@@ -194,7 +196,7 @@ public class TorchPlacementEngine {
         
         if (inventoryTorchSlot != -1) {
             // Swap item from inventory to the target hotbar slot
-            client.gameMode.handleInventoryMouseClick(0, inventoryTorchSlot, torchSlot, ClickType.SWAP, client.player);
+            client.gameMode.handleContainerInput(0, inventoryTorchSlot, torchSlot, ContainerInput.SWAP, client.player);
         }
 
         if (placingHand == InteractionHand.MAIN_HAND) {
@@ -207,7 +209,7 @@ public class TorchPlacementEngine {
 
         if (cdata.advancedPacketSpoofing) {
             Vec3 start = client.player.getEyePosition();
-            Vec3 targetVec = Vec3.atCenterOf(targetBlock).add(Vec3.atLowerCornerOf(hitFace.getNormal()).scale(0.5));
+            Vec3 targetVec = Vec3.atCenterOf(targetBlock).add(Vec3.atLowerCornerOf(new net.minecraft.core.Vec3i(hitFace.getStepX(), hitFace.getStepY(), hitFace.getStepZ())).scale(0.5));
             double dx = targetVec.x - start.x;
             double dy = targetVec.y - start.y;
             double dz = targetVec.z - start.z;

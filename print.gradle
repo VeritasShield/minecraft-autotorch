@@ -1,0 +1,13 @@
+gradle.rootProject {
+    task printGameMode {
+        doLast {
+            def cl = configurations.compileClasspath
+            URL[] urls = cl.files.collect { it.toURI().toURL() } as URL[]
+            URLClassLoader loader = new URLClassLoader(urls, null)
+            Class<?> clazz = loader.loadClass("net.minecraft.client.multiplayer.MultiPlayerGameMode")
+            clazz.declaredMethods.each {
+                println "METHOD: " + it.name + " " + Arrays.toString(it.parameterTypes)
+            }
+        }
+    }
+}
