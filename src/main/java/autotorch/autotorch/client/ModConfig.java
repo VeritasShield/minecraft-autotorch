@@ -25,6 +25,19 @@ public class ModConfig implements ConfigData {
     int placementRadius = 3;
 
     @ConfigEntry.Category("general")
+    @Comment("Prioritize placing torches on walls instead of the floor")
+    boolean preferWallPlacement = false;
+
+    @ConfigEntry.Category("general")
+    @Comment("Automatically swap torches from inventory if hotbar runs out")
+    boolean useInventoryTorches = true;
+
+    @ConfigEntry.Category("general")
+    @Comment("The target hotbar slot (1-9) for the temporary inventory torch swap")
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 9)
+    int refillHotbarSlot = 9;
+
+    @ConfigEntry.Category("general")
     @Comment("Max vertical distance (up/down) to place torches")
     @ConfigEntry.BoundedDiscrete(min = 0, max = 4)
     int verticalPlacementRadius = 1;
