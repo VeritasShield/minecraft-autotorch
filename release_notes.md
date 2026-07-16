@@ -1,5 +1,8 @@
 ## Auto Torch Enhanced - Notas de Lanzamiento
 
+## v2.2.9 (Corrección de Altura en Modo Túnel)
+- **Fijación de Altura**: Se solucionó el problema donde las antorchas se alternaban entre el suelo y la pared. Ahora, si se detecta un espacio oscuro, el mod iluminará toda la columna asegurándose de colocar la antorcha primero a la altura de la cabeza si hay una pared disponible.
+
 ## v2.2.8 (Corrección de Intercambio y Colocación Inteligente)
 - **Modo Túnel (Mejora de Paredes)**: Si `Preferir Paredes` está activado, el escáner priorizará SIEMPRE la pared a tu **derecha** y a la altura de tu cabeza. Esto permite iluminar túneles 1x2 rectos de manera natural sin el efecto zig-zag, sirviendo como guía de salida.
 - **Sincronización de Intercambio**: Corregido un fallo crítico donde el auto-intercambio de inventario no funcionaba debido a latencias del servidor. Ahora el mod fuerza una actualización local inmediata en tu inventario, logrando una transición invisible e instantánea al extraer antorchas.

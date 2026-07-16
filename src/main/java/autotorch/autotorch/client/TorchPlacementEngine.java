@@ -108,17 +108,27 @@ public class TorchPlacementEngine {
             }
 
             for (int r = 1; r <= cdata.placementRadius; r++) {
-                for (int y : yOrder) {
-                    for (int x = -r; x <= r; x++) {
-                        for (int z = -r; z <= r; z++) {
-                            if (Math.abs(x) == r || Math.abs(z) == r) {
+                for (int x = -r; x <= r; x++) {
+                    for (int z = -r; z <= r; z++) {
+                        if (Math.abs(x) == r || Math.abs(z) == r) {
+                            boolean columnNeedsLight = false;
+                            for (int y = -rMax; y <= rMax; y++) {
                                 BlockPos checkPos = playerPos.offset(x, y, z);
-                                
                                 if (client.level.getBrightness(LightLayer.BLOCK, checkPos) < cdata.lightLevel) {
-                                    Direction bestDir = getBestPlacementDirection(client, checkPos, cdata, zoneManager);
-                                    if (bestDir != null && RaycastUtils.hasLineOfSight(client, checkPos)) {
-                                        if (!cdata.requireLineOfSightAngle || RaycastUtils.isLookingAt(client, checkPos, cdata)) {
-                                            queueTorchPlacement(checkPos, bestDir, cdata);
+                                    if (client.level.getBlockState(checkPos).canBeReplaced() && RaycastUtils.hasLineOfSight(client, checkPos)) {
+                                        columnNeedsLight = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (columnNeedsLight) {
+                                for (int y : yOrder) {
+                                    BlockPos placementPos = playerPos.offset(x, y, z);
+                                    Direction bestDir = getBestPlacementDirection(client, placementPos, cdata, zoneManager);
+                                    if (bestDir != null && RaycastUtils.hasLineOfSight(client, placementPos)) {
+                                        if (!cdata.requireLineOfSightAngle || RaycastUtils.isLookingAt(client, placementPos, cdata)) {
+                                            queueTorchPlacement(placementPos, bestDir, cdata);
                                             return;
                                         }
                                     }
