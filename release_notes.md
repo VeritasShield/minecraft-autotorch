@@ -1,5 +1,8 @@
 ## Auto Torch Enhanced - Notas de Lanzamiento
 
+## v2.2.11 (Sincronización Total de Distancia)
+- **Modo Pared Perfeccionado**: La opción de priorizar paredes ahora utiliza exactamente el mismo motor de escaneo y cálculo de distancia que el modo de suelo clásico. Esto significa que la distancia, sensibilidad de FOV y espaciado de antorchas serán 100% consistentes e idénticas a cuando la opción está apagada, pero colocando inteligentemente la antorcha a la altura de la cabeza si hay una pared disponible.
+
 ## v2.2.10 (Restauración de Distancia y Fijación Definitiva de Altura)
 - **Distancia de Colocación**: Se revirtió un cambio experimental en el motor de escaneo que estaba afectando negativamente la fluidez y distancia a la que se colocaban las antorchas.
 - **Altura Definitiva**: Se rediseñó el sistema de visión y escaneo para ser completamente inmune al "cabeceo" (View Bobbing) al caminar. Ahora las antorchas mantendrán la altura de la cabeza de forma consistente en túneles sin importar hacia dónde mires exactamente.

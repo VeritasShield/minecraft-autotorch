@@ -93,42 +93,49 @@ public class TorchPlacementEngine {
         }
 
         if (cdata.placementRadius > 0) {
-            int rMax = cdata.verticalPlacementRadius;
-            int[] yOrder = new int[2 * rMax + 1];
-            int idx = 0;
-            if (cdata.preferWallPlacement && rMax >= 1) {
-                yOrder[idx++] = 1;
-                yOrder[idx++] = 0;
-                if (rMax >= 2) yOrder[idx++] = 2;
-                for (int y = -rMax; y <= rMax; y++) {
-                    if (y != 0 && y != 1 && y != 2) yOrder[idx++] = y;
-                }
-            } else {
-                for (int y = -rMax; y <= rMax; y++) yOrder[idx++] = y;
-            }
-
             for (int r = 1; r <= cdata.placementRadius; r++) {
                 for (int x = -r; x <= r; x++) {
-                    for (int y : yOrder) {
+                    for (int y = -cdata.verticalPlacementRadius; y <= cdata.verticalPlacementRadius; y++) {
                         for (int z = -r; z <= r; z++) {
                             if (Math.abs(x) == r || Math.abs(z) == r) {
                                 BlockPos checkPos = playerPos.offset(x, y, z);
                                 
-                                int effectiveLight = client.level.getBrightness(LightLayer.BLOCK, checkPos);
-                                // Inherit darkness from the block below to prevent height alternation
-                                if (cdata.preferWallPlacement && y == 1) {
-                                    int belowLight = client.level.getBrightness(LightLayer.BLOCK, checkPos.below());
-                                    if (belowLight < effectiveLight) {
-                                        effectiveLight = belowLight;
-                                    }
-                                }
-                                
-                                if (effectiveLight < cdata.lightLevel) {
-                                    Direction bestDir = getBestPlacementDirection(client, checkPos, cdata, zoneManager);
-                                    if (bestDir != null && RaycastUtils.hasLineOfSight(client, checkPos)) {
-                                        if (!cdata.requireLineOfSightAngle || RaycastUtils.isLookingAt(client, checkPos, cdata)) {
-                                            queueTorchPlacement(checkPos, bestDir, cdata);
-                                            return;
+                                if (client.level.getBrightness(LightLayer.BLOCK, checkPos) < cdata.lightLevel) {
+                                    if (client.level.getBlockState(checkPos).canBeReplaced() && RaycastUtils.hasLineOfSight(client, checkPos)) {
+                                        
+                                        BlockPos placementPos = checkPos;
+                                        Direction bestDir = null;
+                                        
+                                        if (cdata.preferWallPlacement) {
+                                            // Intenta colocar la antorcha 1 bloque más arriba (a la altura de los ojos en un túnel)
+                                            BlockPos headPos = checkPos.above();
+                                            if (!zoneManager.isInExcludedZone(headPos) && client.level.getBlockState(headPos).canBeReplaced() && client.level.getBlockState(headPos).getFluidState().isEmpty() && RaycastUtils.hasLineOfSight(client, headPos)) {
+                                                bestDir = getWallDirectionOnly(client, headPos, cdata);
+                                                if (bestDir != null) {
+                                                    placementPos = headPos;
+                                                }
+                                            }
+                                            
+                                            // Si no hay pared arriba, intenta buscar pared en la misma posición base
+                                            if (bestDir == null && !zoneManager.isInExcludedZone(checkPos) && client.level.getBlockState(checkPos).getFluidState().isEmpty()) {
+                                                bestDir = getWallDirectionOnly(client, checkPos, cdata);
+                                                if (bestDir != null) {
+                                                    placementPos = checkPos;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Si no se encontró pared o la opción está desactivada, cae al suelo
+                                        if (bestDir == null && !zoneManager.isInExcludedZone(checkPos) && client.level.getBlockState(checkPos).getFluidState().isEmpty()) {
+                                            bestDir = getFloorDirectionOnly(client, checkPos, cdata);
+                                            placementPos = checkPos;
+                                        }
+                                        
+                                        if (bestDir != null) {
+                                            if (!cdata.requireLineOfSightAngle || RaycastUtils.isLookingAt(client, placementPos, cdata)) {
+                                                queueTorchPlacement(placementPos, bestDir, cdata);
+                                                return;
+                                            }
                                         }
                                     }
                                 }
@@ -138,6 +145,46 @@ public class TorchPlacementEngine {
                 }
             }
         }
+    }
+
+    private Direction getWallDirectionOnly(Minecraft client, BlockPos pos, ModConfig cdata) {
+        Vec3 eyePos = client.player.getEyePosition();
+        Vec3 lookVec = client.player.getViewVector(1.0F).normalize();
+        Vec3 rightVec = lookVec.cross(new Vec3(0, 1, 0)).normalize();
+        
+        Direction bestDir = null;
+        double bestDot = -999.0;
+        
+        for (Direction dir : Direction.Plane.HORIZONTAL) {
+            BlockPos wallPos = pos.relative(dir);
+            Block wallBlock = client.level.getBlockState(wallPos).getBlock();
+            String blockId = BuiltInRegistries.BLOCK.getKey(wallBlock).toString();
+            if (!cdata.blacklistedBlocks.contains(blockId) && Block.canSupportCenter(client.level, wallPos, dir.getOpposite())) {
+                Vec3 wallDir = new Vec3(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+                double rightDot = rightVec.dot(wallDir);
+                
+                Vec3 toTarget = Vec3.atCenterOf(wallPos).subtract(eyePos).normalize();
+                double forwardDot = lookVec.dot(toTarget);
+                
+                double score = (rightDot * 3.0) + forwardDot;
+                
+                if (score > bestDot) {
+                    bestDot = score;
+                    bestDir = dir;
+                }
+            }
+        }
+        return bestDir;
+    }
+
+    private Direction getFloorDirectionOnly(Minecraft client, BlockPos pos, ModConfig cdata) {
+        BlockPos supportPos = pos.below();
+        Block supportBlock = client.level.getBlockState(supportPos).getBlock();
+        String blockId = BuiltInRegistries.BLOCK.getKey(supportBlock).toString();
+        if (!cdata.blacklistedBlocks.contains(blockId) && Block.canSupportCenter(client.level, supportPos, Direction.UP)) {
+            return Direction.DOWN;
+        }
+        return null;
     }
 
     private boolean isTorch(ItemStack stack) {
@@ -154,44 +201,11 @@ public class TorchPlacementEngine {
         if (zoneManager.isInExcludedZone(pos)) return null;
         if (!client.level.getBlockState(pos).canBeReplaced() || !client.level.getBlockState(pos).getFluidState().isEmpty()) return null;
 
-        Direction bestDir = null;
-        double bestDot = -999.0;
-        Vec3 eyePos = client.player.getEyePosition();
-        Vec3 lookVec = client.player.getViewVector(1.0F).normalize();
-
         if (cdata.preferWallPlacement) {
-            Vec3 rightVec = lookVec.cross(new Vec3(0, 1, 0)).normalize();
-            
-            for (Direction dir : Direction.Plane.HORIZONTAL) {
-                BlockPos wallPos = pos.relative(dir);
-                Block wallBlock = client.level.getBlockState(wallPos).getBlock();
-                String blockId = BuiltInRegistries.BLOCK.getKey(wallBlock).toString();
-                if (!cdata.blacklistedBlocks.contains(blockId) && Block.canSupportCenter(client.level, wallPos, dir.getOpposite())) {
-                    Vec3 wallDir = new Vec3(dir.getStepX(), dir.getStepY(), dir.getStepZ());
-                    double rightDot = rightVec.dot(wallDir);
-                    
-                    Vec3 toTarget = Vec3.atCenterOf(wallPos).subtract(eyePos).normalize();
-                    double forwardDot = lookVec.dot(toTarget);
-                    
-                    double score = (rightDot * 3.0) + forwardDot;
-                    
-                    if (score > bestDot) {
-                        bestDot = score;
-                        bestDir = dir;
-                    }
-                }
-            }
-            if (bestDir != null) return bestDir;
+            Direction wallDir = getWallDirectionOnly(client, pos, cdata);
+            if (wallDir != null) return wallDir;
         }
-
-        BlockPos supportPos = pos.below();
-        Block supportBlock = client.level.getBlockState(supportPos).getBlock();
-        String blockId = BuiltInRegistries.BLOCK.getKey(supportBlock).toString();
-        if (!cdata.blacklistedBlocks.contains(blockId) && Block.canSupportCenter(client.level, supportPos, Direction.UP)) {
-            return Direction.DOWN;
-        }
-
-        return null;
+        return getFloorDirectionOnly(client, pos, cdata);
     }
 
     private void queueTorchPlacement(BlockPos pos, Direction dir, ModConfig cdata) {
