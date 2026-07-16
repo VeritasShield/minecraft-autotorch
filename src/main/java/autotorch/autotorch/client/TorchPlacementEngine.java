@@ -52,6 +52,12 @@ public class TorchPlacementEngine {
                 if (revertInventorySwapSource != -1 && revertInventorySwapTarget != -1) {
                     // Swap back the item from hotbar to inventory
                     client.gameMode.handleContainerInput(0, revertInventorySwapSource, revertInventorySwapTarget, ContainerInput.SWAP, client.player);
+                    
+                    ItemStack hotbarItem = client.player.getInventory().getItem(revertInventorySwapTarget);
+                    ItemStack invItem = client.player.getInventory().getItem(revertInventorySwapSource);
+                    client.player.getInventory().setItem(revertInventorySwapTarget, invItem);
+                    client.player.getInventory().setItem(revertInventorySwapSource, hotbarItem);
+                    
                     revertInventorySwapSource = -1;
                     revertInventorySwapTarget = -1;
                 }
@@ -87,9 +93,23 @@ public class TorchPlacementEngine {
         }
 
         if (cdata.placementRadius > 0) {
+            int rMax = cdata.verticalPlacementRadius;
+            int[] yOrder = new int[2 * rMax + 1];
+            int idx = 0;
+            if (cdata.preferWallPlacement && rMax >= 1) {
+                yOrder[idx++] = 1;
+                yOrder[idx++] = 0;
+                if (rMax >= 2) yOrder[idx++] = 2;
+                for (int y = -rMax; y <= rMax; y++) {
+                    if (y != 0 && y != 1 && y != 2) yOrder[idx++] = y;
+                }
+            } else {
+                for (int y = -rMax; y <= rMax; y++) yOrder[idx++] = y;
+            }
+
             for (int r = 1; r <= cdata.placementRadius; r++) {
-                for (int x = -r; x <= r; x++) {
-                    for (int y = -cdata.verticalPlacementRadius; y <= cdata.verticalPlacementRadius; y++) {
+                for (int y : yOrder) {
+                    for (int x = -r; x <= r; x++) {
                         for (int z = -r; z <= r; z++) {
                             if (Math.abs(x) == r || Math.abs(z) == r) {
                                 BlockPos checkPos = playerPos.offset(x, y, z);
@@ -126,20 +146,28 @@ public class TorchPlacementEngine {
         if (!client.level.getBlockState(pos).canBeReplaced() || !client.level.getBlockState(pos).getFluidState().isEmpty()) return null;
 
         Direction bestDir = null;
-        double bestDot = -2.0;
+        double bestDot = -999.0;
         Vec3 eyePos = client.player.getEyePosition();
         Vec3 lookVec = client.player.getViewVector(1.0F).normalize();
 
         if (cdata.preferWallPlacement) {
+            Vec3 rightVec = lookVec.cross(new Vec3(0, 1, 0)).normalize();
+            
             for (Direction dir : Direction.Plane.HORIZONTAL) {
                 BlockPos wallPos = pos.relative(dir);
                 Block wallBlock = client.level.getBlockState(wallPos).getBlock();
                 String blockId = BuiltInRegistries.BLOCK.getKey(wallBlock).toString();
                 if (!cdata.blacklistedBlocks.contains(blockId) && Block.canSupportCenter(client.level, wallPos, dir.getOpposite())) {
+                    Vec3 wallDir = new Vec3(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+                    double rightDot = rightVec.dot(wallDir);
+                    
                     Vec3 toTarget = Vec3.atCenterOf(wallPos).subtract(eyePos).normalize();
-                    double dot = lookVec.dot(toTarget);
-                    if (dot > bestDot) {
-                        bestDot = dot;
+                    double forwardDot = lookVec.dot(toTarget);
+                    
+                    double score = (rightDot * 3.0) + forwardDot;
+                    
+                    if (score > bestDot) {
+                        bestDot = score;
                         bestDir = dir;
                     }
                 }
@@ -197,6 +225,12 @@ public class TorchPlacementEngine {
         if (inventoryTorchSlot != -1) {
             // Swap item from inventory to the target hotbar slot
             client.gameMode.handleContainerInput(0, inventoryTorchSlot, torchSlot, ContainerInput.SWAP, client.player);
+            
+            // Manual swap in client
+            ItemStack hotbarItem = client.player.getInventory().getItem(torchSlot);
+            ItemStack invItem = client.player.getInventory().getItem(inventoryTorchSlot);
+            client.player.getInventory().setItem(torchSlot, invItem);
+            client.player.getInventory().setItem(inventoryTorchSlot, hotbarItem);
         }
 
         if (placingHand == InteractionHand.MAIN_HAND) {

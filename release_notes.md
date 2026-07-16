@@ -1,6 +1,10 @@
-## Auto Torch Enhanced - Release Notes
+## Auto Torch Enhanced - Notas de Lanzamiento
 
-## v2.2.6 (Minecraft 26.2)
+## v2.2.8 (Corrección de Intercambio y Colocación Inteligente)
+- **Modo Túnel (Mejora de Paredes)**: Si `Preferir Paredes` está activado, el escáner priorizará SIEMPRE la pared a tu **derecha** y a la altura de tu cabeza. Esto permite iluminar túneles 1x2 rectos de manera natural sin el efecto zig-zag, sirviendo como guía de salida.
+- **Sincronización de Intercambio**: Corregido un fallo crítico donde el auto-intercambio de inventario no funcionaba debido a latencias del servidor. Ahora el mod fuerza una actualización local inmediata en tu inventario, logrando una transición invisible e instantánea al extraer antorchas.
+
+## v2.2.6 (Auto-Recarga y Refactorización del Escáner)
 ### New Features
 - **Smart Wall Placement (FOV-Aware)**: Added a new configuration option to prioritize placing torches on adjacent walls instead of strictly on the floor. When searching for walls, the mod respects your FOV and prioritizes the wall face you are most directly looking at.
 - **Auto-Refill (Inventory Swapping)**: The mod will now seamlessly use torches from your main inventory when your hotbar runs out. It temporarily swaps the torch into a configured hotbar slot (default: 9) to place it, and then instantly swaps the original item back, keeping your inventory perfectly organized.
