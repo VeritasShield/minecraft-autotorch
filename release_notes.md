@@ -1,5 +1,9 @@
 ## Auto Torch Enhanced - Notas de Lanzamiento
 
+## v2.2.10 (Restauración de Distancia y Fijación Definitiva de Altura)
+- **Distancia de Colocación**: Se revirtió un cambio experimental en el motor de escaneo que estaba afectando negativamente la fluidez y distancia a la que se colocaban las antorchas.
+- **Altura Definitiva**: Se rediseñó el sistema de visión y escaneo para ser completamente inmune al "cabeceo" (View Bobbing) al caminar. Ahora las antorchas mantendrán la altura de la cabeza de forma consistente en túneles sin importar hacia dónde mires exactamente.
+
 ## v2.2.9 (Corrección de Altura en Modo Túnel)
 - **Fijación de Altura**: Se solucionó el problema donde las antorchas se alternaban entre el suelo y la pared. Ahora, si se detecta un espacio oscuro, el mod iluminará toda la columna asegurándose de colocar la antorcha primero a la altura de la cabeza si hay una pared disponible.
 

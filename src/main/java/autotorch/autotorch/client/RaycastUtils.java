@@ -19,8 +19,17 @@ public class RaycastUtils {
 
     public static boolean isLookingAt(Minecraft client, BlockPos target, ModConfig cdata) {
         Vec3 eyePos = client.player.getEyePosition();
-        Vec3 toTarget = Vec3.atCenterOf(target).subtract(eyePos).normalize();
-        Vec3 lookVec = client.player.getViewVector(1.0F).normalize();
-        return lookVec.dot(toTarget) > Math.cos(Math.toRadians(cdata.lineOfSightAngle / 2.0));
+        Vec3 lookVec = client.player.getViewVector(1.0F);
+        
+        if (Math.abs(lookVec.y) > 0.95) {
+            Vec3 toTarget = Vec3.atCenterOf(target).subtract(eyePos).normalize();
+            return lookVec.normalize().dot(toTarget) > Math.cos(Math.toRadians(cdata.lineOfSightAngle / 2.0));
+        }
+        
+        Vec3 targetCenter = Vec3.atCenterOf(target);
+        Vec3 toTarget = new Vec3(targetCenter.x - eyePos.x, 0, targetCenter.z - eyePos.z).normalize();
+        Vec3 lookDir = new Vec3(lookVec.x, 0, lookVec.z).normalize();
+        
+        return lookDir.dot(toTarget) > Math.cos(Math.toRadians(cdata.lineOfSightAngle / 2.0));
     }
 }
