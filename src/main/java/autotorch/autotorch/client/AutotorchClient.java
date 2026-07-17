@@ -76,6 +76,7 @@ public class AutotorchClient implements ClientModInitializer {
             
             // Generar las partículas usando el reloj de Ticks en lugar de los Frames gráficos
             SelectionRenderer.spawnSelectionParticles(client, zoneManager);
+            SelectionRenderer.renderDarknessESP(client, CDATA);
 
             placementEngine.tick(client, CDATA, zoneManager);
         }

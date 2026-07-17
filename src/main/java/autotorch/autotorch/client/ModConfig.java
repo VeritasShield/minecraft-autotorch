@@ -42,6 +42,11 @@ public class ModConfig implements ConfigData {
     @ConfigEntry.BoundedDiscrete(min = 0, max = 4)
     int verticalPlacementRadius = 1;
 
+    @ConfigEntry.Category("general")
+    @Comment("Render a visual indicator on dark blocks where mobs can spawn")
+    boolean showDarknessESP = false;
+
+
     // --- PESTAÑA SERVER FRIENDLY ---
     @ConfigEntry.Category("server_friendly")
     @Comment("Forces the player to swing their hand (Bypasses NoSwing checks)")
@@ -68,6 +73,19 @@ public class ModConfig implements ConfigData {
     @Comment("The angle of the cone in which to place torches, from 10 to 180 degrees.")
     @ConfigEntry.BoundedDiscrete(min = 10, max = 180)
     int lineOfSightAngle = 120;
+
+    @ConfigEntry.Category("server_friendly")
+    @Comment("Pause auto placement if the player is sneaking")
+    boolean pauseOnSneak = true;
+
+    @ConfigEntry.Category("server_friendly")
+    @Comment("Pause auto placement if the player is sprinting")
+    boolean pauseOnSprint = false;
+
+    @ConfigEntry.Category("server_friendly")
+    @Comment("Pause auto placement if holding a Sword, Axe, Bow, etc.")
+    boolean pauseInCombat = true;
+
 
     // --- PESTAÑA AVANZADO ---
     @ConfigEntry.Category("advanced")
@@ -101,12 +119,22 @@ public class ModConfig implements ConfigData {
     int slotRevertVariance = 3;
 
     @ConfigEntry.Category("advanced")
-    @Comment("List of block IDs where torches should NEVER be placed (e.g. minecraft:glass)")
+    @Comment("Delay (in ticks) to wait after swapping an inventory torch before placing it (Anti-ban/Anti-cheat)")
+    @ConfigEntry.BoundedDiscrete(min = 0, max = 20)
+    int inventorySwapDelayTicks = 2;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("If true, the block list acts as a Whitelist. If false, it acts as a Blacklist.")
+    boolean blockListIsWhitelist = false;
+
+    @ConfigEntry.Category("advanced")
+    @Comment("List of block IDs for the Blacklist/Whitelist (e.g. minecraft:glass)")
     List<String> blacklistedBlocks = new ArrayList<>();
 
     @ConfigEntry.Category("advanced")
     @Comment("List of Anti-Torch zones (Format: x1,y1,z1|x2,y2,z2)")
     public List<String> excludedZones = new ArrayList<>();
+
 
     
 }

@@ -1,42 +1,12 @@
-## Auto Torch Enhanced - Notas de Lanzamiento
+# Auto Torch Enhanced v2.2.11
 
-## v2.2.11 (Sincronización Total de Distancia)
-- **Modo Pared Perfeccionado**: La opción de priorizar paredes ahora utiliza exactamente el mismo motor de escaneo y cálculo de distancia que el modo de suelo clásico. Esto significa que la distancia, sensibilidad de FOV y espaciado de antorchas serán 100% consistentes e idénticas a cuando la opción está apagada, pero colocando inteligentemente la antorcha a la altura de la cabeza si hay una pared disponible.
+## 🌟 What's New?
+* **Smart Pauses:** The mod will intelligently pause placing torches if you are Sneaking, Sprinting, or holding a weapon (Swords, Axes, Bows, Tridents), preventing accidental placements during combat or precision movement.
+* **Darkness ESP (Optional):** Render a small flame particle in the center of dark blocks around you where mobs can spawn, allowing you to easily identify unlit areas.
+* **Block Blacklist & Whitelist Mode:** Prevent ruining your builds! Look at any block in-game and press a key to blacklist it so torches are never placed there. Alternatively, toggle the list in the options to act as a Whitelist so torches are ONLY placed on those blocks.
+* **Offhand Support Detection:** Seamlessly supports placing torches directly from the offhand (bypassing hotbar swaps) if you prefer playing that way.
 
-## v2.2.10 (Restauración de Distancia y Fijación Definitiva de Altura)
-- **Distancia de Colocación**: Se revirtió un cambio experimental en el motor de escaneo que estaba afectando negativamente la fluidez y distancia a la que se colocaban las antorchas.
-- **Altura Definitiva**: Se rediseñó el sistema de visión y escaneo para ser completamente inmune al "cabeceo" (View Bobbing) al caminar. Ahora las antorchas mantendrán la altura de la cabeza de forma consistente en túneles sin importar hacia dónde mires exactamente.
-
-## v2.2.9 (Corrección de Altura en Modo Túnel)
-- **Fijación de Altura**: Se solucionó el problema donde las antorchas se alternaban entre el suelo y la pared. Ahora, si se detecta un espacio oscuro, el mod iluminará toda la columna asegurándose de colocar la antorcha primero a la altura de la cabeza si hay una pared disponible.
-
-## v2.2.8 (Corrección de Intercambio y Colocación Inteligente)
-- **Modo Túnel (Mejora de Paredes)**: Si `Preferir Paredes` está activado, el escáner priorizará SIEMPRE la pared a tu **derecha** y a la altura de tu cabeza. Esto permite iluminar túneles 1x2 rectos de manera natural sin el efecto zig-zag, sirviendo como guía de salida.
-- **Sincronización de Intercambio**: Corregido un fallo crítico donde el auto-intercambio de inventario no funcionaba debido a latencias del servidor. Ahora el mod fuerza una actualización local inmediata en tu inventario, logrando una transición invisible e instantánea al extraer antorchas.
-
-## v2.2.6 (Auto-Recarga y Refactorización del Escáner)
-### New Features
-- **Smart Wall Placement (FOV-Aware)**: Added a new configuration option to prioritize placing torches on adjacent walls instead of strictly on the floor. When searching for walls, the mod respects your FOV and prioritizes the wall face you are most directly looking at.
-- **Auto-Refill (Inventory Swapping)**: The mod will now seamlessly use torches from your main inventory when your hotbar runs out. It temporarily swaps the torch into a configured hotbar slot (default: 9) to place it, and then instantly swaps the original item back, keeping your inventory perfectly organized.
-
-### Fixes
-- Re-architected `TorchPlacementEngine` to use dynamic block targets and faces to support complex placements without flagging strict anti-cheats.
-
-## Auto Torch Enhanced v2.2.2 (Minecraft 26.2)
-
-This release brings full compatibility with Minecraft 26.2 and includes massive logic and UX upgrades:
-
-### 🚀 Major Updates
-* **Minecraft 26.2 Compatibility**: Fully updated the mod environment to target the latest unobfuscated Minecraft 26.2 update.
-* **Java 25 Migration**: Transitioned build tools and dependencies to leverage Java 25.
-
-### 🌟 New Features & Performance
-* **Volumetric Scanner Throttling**: Added `scanDelayTicks` to the Advanced Configuration. The mod no longer scans the 3D volume every single tick, saving massive amounts of CPU when using large radiuses!
-* **Advanced Packet Spoofing**: Added strict math-based Anti-Cheat bypass in Server Friendly config. Calculates exact `Pitch` and `Yaw` to the target block before placing, rather than just forcing the head down.
-* **Improved Zone UX**: Tired of editing strings in ModMenu? Press `Z` to enter Zone Mode, stand in any active zone, and press `Shift + Z` to delete it instantly! Pressing `Ctrl + Z` will wipe all zones.
-
-### 🛠️ Fixes & Improvements
-* **ModMenu Integration Fix**: Resolved a critical runtime mappings mismatch with `cloth-config`. The configuration screen is dynamically loaded via Reflection, opening flawlessly in pure Mojang mapped environments.
-* **Network & Inventory Refactor**: Updated legacy hotbar access to the new accessor patterns (`getSelectedSlot()`/`setSelectedSlot()`).
-* **Item Tags & UI Migration**: Ported item checking logic to use modern component structures (`stack.typeHolder().is(...)`) and updated UI feedback to native `sendSystemMessage` and `sendOverlayMessage`.
-* **Exclusion Zones Efficiency**: `ZoneManager` effectively caches defined coordinates into `AABB` geometric bounds, ensuring fast and performant spatial checks.
+## 🛠️ Fixes & Improvements
+* Fixed an issue where the inventory slot could get visually desynced, leaving "ghost" torches in your inventory until you clicked them.
+* Re-wrote weapon detection logic using Registry Names and Fabric Tags (`#c:swords`, `#c:axes`) to ensure compatibility with 100% of vanilla and modded weapons, even in obfuscated production environments.
+* Added missing translations for Spanish (`es_es.json`) and English (`en_us.json`) for all the new features.

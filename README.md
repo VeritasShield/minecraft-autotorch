@@ -13,8 +13,10 @@ The original mod was great, but it lacked compatibility with modern server anti-
   * Added an artificial hand-swing animation to prevent `NoSwing` kicks.
   * Added a Line-of-Sight (FOV) check so you don't place torches behind your back (prevents `Scaffold/KillAura` flags).
 * **Smart Placement:** Raycasting prevents placing torches through walls.
+* **Smart Pauses:** The mod will intelligently pause placing torches if you are Sneaking, Sprinting, or holding a weapon (Swords, Axes, Bows, Tridents), preventing accidental placements during combat or precision movement.
+* **Darkness ESP (Optional):** Render a small flame particle in the center of dark blocks around you where mobs can spawn, allowing you to easily identify unlit areas.
 * **Adjustable Radius:** Scan for dark spots horizontally and vertically before you even step on them!
-* **Block Blacklist:** Prevent ruining your builds! Look at any block in-game and press a key to blacklist it so torches are never placed there.
+* **Block Blacklist & Whitelist:** Prevent ruining your builds! Look at any block in-game and press a key to blacklist it so torches are never placed there. Alternatively, toggle the list in the options to act as a Whitelist.
 * **Anti-Torch Zones (WorldEdit Style):** Use an empty hand to left/right click and define 3D exclusion zones. These are saved in your config and can be viewed/deleted via ModMenu. Perfect for big builds!
 * **Advanced Configuration:** Fully customizable cooldowns, update ticks, and random variances directly from the ModMenu screen.
 

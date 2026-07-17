@@ -1,12 +1,14 @@
 gradle.rootProject {
-    task printGameMode {
+    task printContainerInput {
         doLast {
             def cl = configurations.compileClasspath
             URL[] urls = cl.files.collect { it.toURI().toURL() } as URL[]
             URLClassLoader loader = new URLClassLoader(urls, null)
             Class<?> clazz = loader.loadClass("net.minecraft.client.multiplayer.MultiPlayerGameMode")
+            def outFile = new File("methods.txt")
+            outFile.write("")
             clazz.declaredMethods.each {
-                println "METHOD: " + it.name + " " + Arrays.toString(it.parameterTypes)
+                outFile.append("METHOD: " + it.name + " " + Arrays.toString(it.parameterTypes) + "\n")
             }
         }
     }

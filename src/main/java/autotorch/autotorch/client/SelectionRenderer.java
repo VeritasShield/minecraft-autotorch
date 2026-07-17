@@ -4,6 +4,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.block.Block;
 
 public class SelectionRenderer {
 
@@ -39,6 +42,34 @@ public class SelectionRenderer {
             drawParticleLineBox(client, box, ParticleTypes.HAPPY_VILLAGER); // Verde
         }
     }
+
+    public static void renderDarknessESP(Minecraft client, ModConfig cdata) {
+        if (!cdata.showDarknessESP || client.player == null || client.level == null) return;
+        if (client.level.getGameTime() % 5 != 0) return;
+
+        BlockPos playerPos = client.player.blockPosition();
+        int radius = cdata.placementRadius > 0 ? cdata.placementRadius : 2;
+        int verticalRadius = cdata.verticalPlacementRadius > 0 ? cdata.verticalPlacementRadius : 1;
+
+        for (int x = -radius; x <= radius; x++) {
+            for (int y = -verticalRadius; y <= verticalRadius; y++) {
+                for (int z = -radius; z <= radius; z++) {
+                    BlockPos checkPos = playerPos.offset(x, y, z);
+                    // Check if block can have torch placed on it
+                    if (client.level.getBlockState(checkPos).getFluidState().isEmpty() && client.level.getBlockState(checkPos).canBeReplaced()) {
+                        BlockPos supportPos = checkPos.below();
+                        if (Block.canSupportCenter(client.level, supportPos, net.minecraft.core.Direction.UP)) {
+                            if (client.level.getBrightness(LightLayer.BLOCK, checkPos) < cdata.lightLevel) {
+                                // Draw a single red particle (dust or flame) in the center of the block
+                                client.particleEngine.createParticle(ParticleTypes.FLAME, checkPos.getX() + 0.5, checkPos.getY() + 0.1, checkPos.getZ() + 0.5, 0.0, 0.0, 0.0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     private static void drawParticleLineBox(Minecraft client, AABB box, ParticleOptions particleType) {
         // En lugar de partículas aleatorias en las caras, dibujamos puntos específicos a lo largo de las 12 aristas de la caja
