@@ -16,8 +16,17 @@ public class ModConfig implements ConfigData {
 
     @ConfigEntry.Category("general")
     @Comment("The block light level below which the torches are placed.")
+    @ConfigEntry.Gui.Tooltip(count = 2)
     @ConfigEntry.BoundedDiscrete(min = 1, max = 14)
-    int lightLevel = 1;
+    public int lightLevel = 7;
+
+    @ConfigEntry.Category("general")
+    @ConfigEntry.Gui.Tooltip(count = 2)
+    public boolean smartSpacing = true;
+
+    @ConfigEntry.Category("general")
+    @ConfigEntry.BoundedDiscrete(min = 1, max = 15)
+    public int smartSpacingRadius = 6;
 
     @ConfigEntry.Category("general")
     @Comment("Max distance in blocks to place torches (0 = only at feet)")

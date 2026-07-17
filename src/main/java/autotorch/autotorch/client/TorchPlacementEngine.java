@@ -92,11 +92,17 @@ public class TorchPlacementEngine {
         if (pendingTorchDelay > 0) {
             pendingTorchDelay--;
             if (pendingTorchDelay == 0 && pendingTorchPos != null && pendingTorchBasePos != null && client.level != null) {
-                if (client.level.getBrightness(LightLayer.BLOCK, pendingTorchBasePos) < cdata.lightLevel) {
+                int lght = client.level.getBrightness(LightLayer.BLOCK, pendingTorchBasePos);
+                if (lght < cdata.lightLevel) {
+                    System.out.println("[AutoTorch Log] Executing torch at " + pendingTorchPos + ". Base light is " + lght);
                     boolean placed = tryPlaceTorch(client, pendingTorchPos, pendingTorchDir, cdata);
                     if (placed) {
                         placeCooldown = cdata.humanizedDelay ? (cdata.placeCooldownTicks + 1 + (int)(Math.random() * cdata.placeCooldownVariance)) : cdata.placeCooldownTicks;
+                    } else {
+                        placeCooldown = 5;
                     }
+                } else {
+                    System.out.println("[AutoTorch Log] Cancelled torch at " + pendingTorchPos + ". Light became " + lght);
                 }
                 pendingTorchPos = null;
                 pendingTorchBasePos = null;
@@ -150,8 +156,12 @@ public class TorchPlacementEngine {
             }
             
             if (bestDir != null) {
-                queueTorchPlacement(playerPos, placementPos, bestDir, cdata);
-                return;
+                if (cdata.smartSpacing && hasTorchNearby(client, placementPos, cdata.smartSpacingRadius)) {
+                    System.out.println("[AutoTorch Log] SmartSpacing: Ignored dark block at " + placementPos + " due to nearby torch.");
+                } else {
+                    queueTorchPlacement(playerPos, placementPos, bestDir, cdata);
+                    return;
+                }
             }
         }
 
@@ -193,6 +203,10 @@ public class TorchPlacementEngine {
                                         }
                                         
                                         if (bestDir != null) {
+                                            if (cdata.smartSpacing && hasTorchNearby(client, placementPos, cdata.smartSpacingRadius)) {
+                                                System.out.println("[AutoTorch Log] SmartSpacing: Ignored dark block at " + placementPos + " due to nearby torch.");
+                                                continue;
+                                            }
                                             if (cdata.requireLineOfSightAngle) {
                                                 if (RaycastUtils.isLookingAt(client, placementPos, cdata)) {
                                                     queueTorchPlacement(checkPos, placementPos, bestDir, cdata);
@@ -285,6 +299,20 @@ public class TorchPlacementEngine {
         this.pendingTorchPos = placementPos;
         this.pendingTorchDir = dir;
         this.pendingTorchDelay = cdata.lightUpdateDelayTicks; 
+        System.out.println("[AutoTorch Log] Queued torch at " + placementPos + " (base: " + basePos + "). Delay: " + pendingTorchDelay);
+    }
+
+    private boolean hasTorchNearby(Minecraft client, BlockPos pos, int radius) {
+        for (int x = -radius; x <= radius; x++) {
+            for (int y = -radius; y <= radius; y++) {
+                for (int z = -radius; z <= radius; z++) {
+                    if (client.level.getBlockState(pos.offset(x, y, z)).getBlock() instanceof TorchBlock) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private boolean tryPlaceTorch(Minecraft client, BlockPos pos, Direction dir, ModConfig cdata) {
@@ -327,7 +355,7 @@ public class TorchPlacementEngine {
         // REACH CHECK FIRST
         float reach = client.player.isCreative() ? 5.0f : 4.5f;
         if (hitPos.distanceToSqr(start) > (reach * reach)) {
-
+            System.out.println("[AutoTorch Log] Failed: Out of reach");
             return false;
         }
 
@@ -397,6 +425,7 @@ public class TorchPlacementEngine {
         InteractionResult result = client.gameMode.useItemOn(client.player, placingHand, new BlockHitResult(hitPos, hitFace, targetBlock, false));
                 
         if (result == InteractionResult.FAIL || result == InteractionResult.PASS) {
+            System.out.println("[AutoTorch Log] Failed: gameMode.useItemOn returned " + result);
 
             if (placingHand == InteractionHand.MAIN_HAND && currentSlot != torchSlot) {
                 client.player.getInventory().setSelectedSlot(currentSlot);
