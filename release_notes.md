@@ -1,4 +1,4 @@
-# Auto Torch Enhanced v2.2.12
+# Auto Torch Enhanced v2.2.14
 
 This is a massive overhaul of the original mod, introducing **Server-Friendly** anti-cheat bypasses, smart environment scanning, and full UI customization!
 
@@ -15,6 +15,7 @@ This is a massive overhaul of the original mod, introducing **Server-Friendly** 
 * **Smart Spacing:** Configurable radius check to prevent placing torches too close to each other, stopping unnecessary spamming in small areas.
 
 ## 🛠️ Fixes & Improvements
+* **HOTFIX:** Removed development log spam (`[AutoTorch Log]`) that was accidentally left enabled in v2.2.13.
 * Fixed an issue where the inventory slot could get visually desynced, leaving "ghost" torches in your inventory.
 * Fixed an infinite loop placement bug when attempting to place torches out of reach.
 * Weapon detection logic uses Registry Names and Fabric Tags (`#c:swords`, `#c:axes`) to ensure compatibility with 100% of vanilla and modded weapons, even in obfuscated production environments.
