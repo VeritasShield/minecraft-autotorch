@@ -1,456 +1,305 @@
 package autotorch.autotorch.client;
 
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.TorchBlock;
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
-import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.inventory.ContainerInput;
 
+import java.util.concurrent.ThreadLocalRandom;
+
+/**
+ * Tick-driven coordinator for dark-spot torch placement synchronized with
+ * LocalPlayer.sendChanges() for true single-movement-packet-per-tick cadence.
+ */
 public class TorchPlacementEngine {
-    private int placeCooldown = 0; 
+    private static final int FAILED_PLACEMENT_COOLDOWN_TICKS = 5;
+
+    private record ReadyPlacement(BlockPos pos, Direction dir, InteractionHand placingHand,
+                                  int currentSlot, int torchSlot, int inventoryTorchSlot) {}
+
+    private final TorchTargetScanner scanner = new TorchTargetScanner();
+    private final InventorySwapController inventoryController = new InventorySwapController();
+    private final RotationSpoofController rotationController = new RotationSpoofController();
+
+    private ClientLevel lastLevel = null;
+    private int placeCooldown = 0;
     private int pendingTorchDelay = 0;
-    private BlockPos pendingTorchBasePos = null;
-    private BlockPos pendingTorchPos = null;
-    private Direction pendingTorchDir = null;
-    
-    private int revertSlotDelay = 0;
-    private int revertSlotIndex = -1;
-    private int revertInventorySwapSource = -1;
-    private int revertInventorySwapTarget = -1;
+    private TorchTargetScanner.PlacementCandidate pendingLightCandidate = null;
 
     private int pendingSwapWaitDelay = 0;
-    private BlockPos swapWaitPos = null;
-    private Direction swapWaitDir = null;
-    private InteractionHand swapWaitHand = null;
-    private int swapWaitCurrentSlot = -1;
-    private int swapWaitTorchSlot = -1;
-    private int swapWaitInventoryTorchSlot = -1;
+    private ReadyPlacement pendingSwapPlacement = null;
+    private ReadyPlacement readyPlacement = null;
 
-    public void tick(Minecraft client, ModConfig cdata, ZoneManager zoneManager) {
+    public void syncLevelState(ClientLevel currentLevel, ZoneManager zoneManager) {
+        if (currentLevel != lastLevel) {
+            lastLevel = currentLevel;
+            resetAllState();
+            zoneManager.onWorldChanged();
+        }
+    }
+
+    public void resetAllState() {
+        placeCooldown = 0;
+        pendingTorchDelay = 0;
+        pendingLightCandidate = null;
+        pendingSwapWaitDelay = 0;
+        pendingSwapPlacement = null;
+        readyPlacement = null;
+        rotationController.reset();
+        inventoryController.reset();
+    }
+
+    public void ensureCameraRestored(LocalPlayer player) {
+        RotationSpoofController.RotationAngles stuck = rotationController.forceRestoreIfActive();
+        if (stuck != null && player != null) {
+            player.setYRot(stuck.yaw());
+            player.setXRot(stuck.pitch());
+        }
+    }
+
+    public void onBeforeSendChanges(Minecraft client, ModConfig cdata, ZoneManager zoneManager) {
+        if (client.player == null || client.level == null) {
+            return;
+        }
+        ensureCameraRestored(client.player);
+        readyPlacement = null;
+
+        long currentGameTime = client.level.getGameTime();
+        rotationController.processNextTickRestore(
+                client.player.getYRot(), client.player.getXRot(), currentGameTime, client.player.isPassenger()
+        );
+
         if (placeCooldown > 0) {
             placeCooldown--;
         }
-
-        if (revertSlotDelay > 0) {
-            revertSlotDelay--;
-            if (revertSlotDelay == 0 && client.player != null) {
-                if (revertSlotIndex != -1) {
-                    client.player.getInventory().setSelectedSlot(revertSlotIndex);
-                    client.player.connection.send(new ServerboundSetCarriedItemPacket(revertSlotIndex));
-                    revertSlotIndex = -1;
-                }
-                if (revertInventorySwapSource != -1 && revertInventorySwapTarget != -1) {
-                    // Send packet to swap the item back from hotbar to inventory
-                    // Manually read the UI slots BEFORE the swap to get the correct state
-                    net.minecraft.world.inventory.Slot sourceSlot = client.player.inventoryMenu.getSlot(revertInventorySwapSource);
-                    net.minecraft.world.inventory.Slot targetSlot = client.player.inventoryMenu.getSlot(36 + revertInventorySwapTarget);
-                    ItemStack sourceItem = sourceSlot.getItem().copy();
-                    ItemStack targetItem = targetSlot.getItem().copy();
-                    
-                    // Send packet to swap the item back from hotbar to inventory
-
-                    client.gameMode.handleContainerInput(0, revertInventorySwapSource, revertInventorySwapTarget, ContainerInput.SWAP, client.player);
-                    
-                    // Manually update the UI slots to ensure the open inventory reflects the revert immediately and keeps accurate count
-                    sourceSlot.set(targetItem);
-                    targetSlot.set(sourceItem);
-                    
-                    revertInventorySwapSource = -1;
-                    revertInventorySwapTarget = -1;
-                }
-            }
-        }
+        inventoryController.tickRevert(client);
 
         if (pendingSwapWaitDelay > 0) {
-            pendingSwapWaitDelay--;
-            if (pendingSwapWaitDelay == 0 && swapWaitPos != null && client.level != null) {
-                executeTorchPlacement(client, cdata, swapWaitPos, swapWaitDir, swapWaitHand, swapWaitCurrentSlot, swapWaitTorchSlot, swapWaitInventoryTorchSlot);
-                swapWaitPos = null;
-                swapWaitDir = null;
-                swapWaitHand = null;
-            }
+            tickPendingSwapWait(client, cdata, currentGameTime);
         }
-
         if (pendingTorchDelay > 0) {
-            pendingTorchDelay--;
-            if (pendingTorchDelay == 0 && pendingTorchPos != null && pendingTorchBasePos != null && client.level != null) {
-                int lght = client.level.getBrightness(LightLayer.BLOCK, pendingTorchBasePos);
-                if (lght < cdata.lightLevel) {
-                    boolean placed = tryPlaceTorch(client, pendingTorchPos, pendingTorchDir, cdata);
-                    if (placed) {
-                        placeCooldown = cdata.humanizedDelay ? (cdata.placeCooldownTicks + 1 + (int)(Math.random() * cdata.placeCooldownVariance)) : cdata.placeCooldownTicks;
-                    } else {
-                        placeCooldown = 5;
-                    }
-                }
-                pendingTorchPos = null;
-                pendingTorchBasePos = null;
-                pendingTorchDir = null;
-            }
+            tickPendingTorchDelay(client, cdata, currentGameTime);
         }
 
-        if (client.player == null || client.level == null) return;
-        if (!cdata.enabled) return;
-        
-        if (cdata.pauseOnSneak && client.player.isCrouching()) return;
-        if (cdata.pauseOnSprint && client.player.isSprinting()) return;
-        if (cdata.pauseInCombat) {
-            ItemStack mainHandStack = client.player.getMainHandItem();
-            Item mainItem = mainHandStack.getItem();
-            String itemName = BuiltInRegistries.ITEM.getKey(mainItem).getPath().toLowerCase();
-            
-            if (itemName.contains("sword") || 
-                itemName.contains("axe") || 
-                itemName.contains("bow") || 
-                itemName.contains("trident") ||
-                mainHandStack.typeHolder().is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "swords"))) ||
-                mainHandStack.typeHolder().is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "axes"))) ||
-                mainHandStack.typeHolder().is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "bows")))) {
+        if (!canScanForCandidate(client, cdata, currentGameTime)) {
+            return;
+        }
+
+        TorchTargetScanner.PlacementCandidate candidate = scanner.findNextCandidate(client, cdata, zoneManager);
+        if (candidate != null) {
+            this.pendingLightCandidate = candidate;
+            this.pendingTorchDelay = cdata.lightUpdateDelayTicks;
+        }
+    }
+
+    public void onAfterSendChanges(Minecraft client, ModConfig cdata) {
+        ReadyPlacement armed = this.readyPlacement;
+        this.readyPlacement = null;
+
+        try {
+            if (client.player != null) {
+                RotationSpoofController.RotationAngles restore = rotationController.finishTickSpoofAfterSendPosition();
+                if (restore != null) {
+                    client.player.setYRot(restore.yaw());
+                    client.player.setXRot(restore.pitch());
+                }
+            } else {
+                rotationController.forceRestoreIfActive();
+            }
+
+            if (armed == null) {
                 return;
             }
+            if (client.player == null || client.level == null || !inventoryController.canSafelyManipulateInventory(client)) {
+                inventoryController.revertNow(client, armed.placingHand(), armed.currentSlot(), armed.torchSlot(), armed.inventoryTorchSlot());
+                placeCooldown = FAILED_PLACEMENT_COOLDOWN_TICKS;
+                return;
+            }
+
+            boolean placed = executeArmedPlacement(client, cdata, armed);
+            placeCooldown = placed
+                    ? computeHumanizedTicks(cdata.placeCooldownTicks, cdata.placeCooldownVariance, cdata.humanizedDelay)
+                    : FAILED_PLACEMENT_COOLDOWN_TICKS;
+        } finally {
+            ensureCameraRestored(client.player);
+        }
+    }
+
+    private boolean canScanForCandidate(Minecraft client, ModConfig cdata, long currentGameTime) {
+        if (!cdata.enabled || !client.player.isAlive() || !inventoryController.canSafelyManipulateInventory(client)) {
+            return false;
+        }
+        if (cdata.pauseOnSneak && client.player.isCrouching()) {
+            return false;
+        }
+        if (cdata.pauseOnSprint && client.player.isSprinting()) {
+            return false;
+        }
+        if (cdata.pauseInCombat && inventoryController.isHoldingWeapon(client.player)) {
+            return false;
+        }
+        if (placeCooldown > 0 || readyPlacement != null || pendingLightCandidate != null
+                || pendingSwapWaitDelay > 0 || rotationController.hasPendingRestore()
+                || inventoryController.hasPendingRevert()) {
+            return false;
+        }
+        return currentGameTime % cdata.scanDelayTicks == 0;
+    }
+
+    private void tickPendingSwapWait(Minecraft client, ModConfig cdata, long currentGameTime) {
+        ReadyPlacement waiting = this.pendingSwapPlacement;
+        if (!isPendingSwapValid(client, client.player, waiting)) {
+            if (waiting != null && inventoryController.canSafelyManipulateInventory(client)) {
+                inventoryController.revertNow(
+                        client, waiting.placingHand(), waiting.currentSlot(), waiting.torchSlot(), waiting.inventoryTorchSlot()
+                );
+            } else {
+                inventoryController.reset();
+            }
+            pendingSwapWaitDelay = 0;
+            pendingSwapPlacement = null;
+            placeCooldown = FAILED_PLACEMENT_COOLDOWN_TICKS;
+            return;
         }
 
-        if (placeCooldown > 0 || pendingTorchPos != null || pendingSwapWaitDelay > 0) return;
-        if (client.level.getGameTime() % cdata.scanDelayTicks != 0) return;
-
-        BlockPos playerPos = client.player.blockPosition();
-
-        if (client.level.getBrightness(LightLayer.BLOCK, playerPos) < cdata.lightLevel) {
-            BlockPos placementPos = playerPos;
-            Direction bestDir = null;
-            if (cdata.preferWallPlacement) {
-                BlockPos headPos = playerPos.above();
-                if (!zoneManager.isInExcludedZone(headPos) && client.level.getBlockState(headPos).canBeReplaced() && client.level.getBlockState(headPos).getFluidState().isEmpty() && RaycastUtils.hasLineOfSight(client, headPos)) {
-                    bestDir = getWallDirectionOnly(client, headPos, cdata);
-                    if (bestDir != null) placementPos = headPos;
-                }
-                if (bestDir == null && !zoneManager.isInExcludedZone(playerPos) && client.level.getBlockState(playerPos).getFluidState().isEmpty()) {
-                    bestDir = getWallDirectionOnly(client, playerPos, cdata);
-                    if (bestDir != null) placementPos = playerPos;
-                }
-            }
-            if (bestDir == null && !zoneManager.isInExcludedZone(playerPos) && client.level.getBlockState(playerPos).getFluidState().isEmpty()) {
-                bestDir = getFloorDirectionOnly(client, playerPos, cdata);
-                placementPos = playerPos;
-            }
-            
-            if (bestDir != null) {
-                if (!cdata.smartSpacing || !hasTorchNearby(client, placementPos, cdata.smartSpacingRadius)) {
-                    queueTorchPlacement(playerPos, placementPos, bestDir, cdata);
-                    return;
-                }
+        pendingSwapWaitDelay--;
+        if (pendingSwapWaitDelay == 0) {
+            pendingSwapPlacement = null;
+            if (!armPlacementForCurrentSync(client, cdata, currentGameTime, waiting)) {
+                placeCooldown = FAILED_PLACEMENT_COOLDOWN_TICKS;
             }
         }
+    }
 
-        if (cdata.placementRadius > 0) {
-            for (int r = 1; r <= cdata.placementRadius; r++) {
-                for (int x = -r; x <= r; x++) {
-                    for (int y = -cdata.verticalPlacementRadius; y <= cdata.verticalPlacementRadius; y++) {
-                        for (int z = -r; z <= r; z++) {
-                            if (Math.abs(x) == r || Math.abs(z) == r) {
-                                BlockPos checkPos = playerPos.offset(x, y, z);
-                                
-                                if (client.level.getBrightness(LightLayer.BLOCK, checkPos) < cdata.lightLevel) {
-                                    if (client.level.getBlockState(checkPos).canBeReplaced() && RaycastUtils.hasLineOfSight(client, checkPos)) {
-                                        
-                                        BlockPos placementPos = checkPos;
-                                        Direction bestDir = null;
-                                        
-                                        if (cdata.preferWallPlacement) {
-                                            BlockPos headPos = checkPos.above();
-                                            
-                                            if (!zoneManager.isInExcludedZone(headPos) && client.level.getBlockState(headPos).canBeReplaced() && client.level.getBlockState(headPos).getFluidState().isEmpty() && RaycastUtils.hasLineOfSight(client, headPos)) {
-                                                bestDir = getWallDirectionOnly(client, headPos, cdata);
-                                                if (bestDir != null) {
-                                                    placementPos = headPos;
-                                                }
-                                            }
-                                            
-                                            if (bestDir == null && !zoneManager.isInExcludedZone(checkPos) && client.level.getBlockState(checkPos).getFluidState().isEmpty()) {
-                                                bestDir = getWallDirectionOnly(client, checkPos, cdata);
-                                                if (bestDir != null) {
-                                                    placementPos = checkPos;
-                                                }
-                                            }
-                                        }
-                                        
-                                        if (bestDir == null && !zoneManager.isInExcludedZone(checkPos) && client.level.getBlockState(checkPos).getFluidState().isEmpty()) {
-                                            bestDir = getFloorDirectionOnly(client, checkPos, cdata);
-                                            placementPos = checkPos;
-                                        }
-                                        
-                                        if (bestDir != null) {
-                                            if (cdata.smartSpacing && hasTorchNearby(client, placementPos, cdata.smartSpacingRadius)) {
-                                                continue;
-                                            }
-                                            if (cdata.requireLineOfSightAngle) {
-                                                if (RaycastUtils.isLookingAt(client, placementPos, cdata)) {
-                                                    queueTorchPlacement(checkPos, placementPos, bestDir, cdata);
-                                                    return;
-                                                }
-                                            } else {
-                                                queueTorchPlacement(checkPos, placementPos, bestDir, cdata);
-                                                return;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+    private boolean isPendingSwapValid(Minecraft client, LocalPlayer player, ReadyPlacement waiting) {
+        if (waiting == null || !inventoryController.canSafelyManipulateInventory(client)) {
+            return false;
+        }
+        if (waiting.placingHand() == InteractionHand.OFF_HAND) {
+            return inventoryController.isTorch(player.getOffhandItem());
+        }
+        return player.getInventory().getSelectedSlot() == waiting.torchSlot()
+                && inventoryController.isTorch(player.getInventory().getItem(waiting.torchSlot()));
+    }
+
+    private void tickPendingTorchDelay(Minecraft client, ModConfig cdata, long currentGameTime) {
+        pendingTorchDelay--;
+        if (pendingTorchDelay == 0 && pendingLightCandidate != null) {
+            TorchTargetScanner.PlacementCandidate candidate = pendingLightCandidate;
+            pendingLightCandidate = null;
+            if (client.level.getBrightness(LightLayer.BLOCK, candidate.basePos()) < cdata.lightLevel) {
+                boolean ok = prepareTorchPlacement(client, currentGameTime, candidate.placementPos(), candidate.supportDir(), cdata);
+                if (!ok && pendingSwapWaitDelay == 0 && readyPlacement == null) {
+                    placeCooldown = FAILED_PLACEMENT_COOLDOWN_TICKS;
                 }
             }
         }
     }
 
-    private Direction getWallDirectionOnly(Minecraft client, BlockPos pos, ModConfig cdata) {
-        Vec3 eyePos = client.player.getEyePosition();
-        Vec3 lookVec = client.player.getViewVector(1.0F).normalize();
-        Vec3 rightVec = lookVec.cross(new Vec3(0, 1, 0)).normalize();
-        
-        Direction bestDir = null;
-        double bestDot = -999.0;
-        
-        for (Direction dir : Direction.Plane.HORIZONTAL) {
-            BlockPos wallPos = pos.relative(dir);
-            Block wallBlock = client.level.getBlockState(wallPos).getBlock();
-            String blockId = BuiltInRegistries.BLOCK.getKey(wallBlock).toString();
-            boolean isListed = cdata.blacklistedBlocks.contains(blockId);
-            boolean allowed = cdata.blockListIsWhitelist ? isListed : !isListed;
-            
-            if (allowed && Block.canSupportCenter(client.level, wallPos, dir.getOpposite())) {
-                Vec3 wallDir = new Vec3(dir.getStepX(), dir.getStepY(), dir.getStepZ());
-                double rightDot = rightVec.dot(wallDir);
-                
-                Vec3 toTarget = Vec3.atCenterOf(wallPos).subtract(eyePos).normalize();
-                double forwardDot = lookVec.dot(toTarget);
-                
-                double score = (rightDot * 3.0) + forwardDot;
-                
-                if (score > bestDot) {
-                    bestDot = score;
-                    bestDir = dir;
-                }
-            }
+    private boolean prepareTorchPlacement(Minecraft client, long currentGameTime, BlockPos pos, Direction dir, ModConfig cdata) {
+        if (!inventoryController.canSafelyManipulateInventory(client)) {
+            return false;
         }
-        return bestDir;
-    }
-
-    private Direction getFloorDirectionOnly(Minecraft client, BlockPos pos, ModConfig cdata) {
-        BlockPos supportPos = pos.below();
-        Block supportBlock = client.level.getBlockState(supportPos).getBlock();
-        String blockId = BuiltInRegistries.BLOCK.getKey(supportBlock).toString();
-        boolean isListed = cdata.blacklistedBlocks.contains(blockId);
-        boolean allowed = cdata.blockListIsWhitelist ? isListed : !isListed;
-        
-        if (allowed && Block.canSupportCenter(client.level, supportPos, Direction.UP)) {
-            return Direction.DOWN;
-        }
-        return null;
-    }
-
-    private boolean isTorch(ItemStack stack) {
-        if (stack.isEmpty()) return false;
-        Item item = stack.getItem();
-        if (item == Items.TORCH || item == Items.SOUL_TORCH) return true;
-        if (item instanceof BlockItem blockItem) {
-            return blockItem.getBlock() instanceof TorchBlock;
-        }
-        return stack.typeHolder().is(TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "torches")));
-    }
-
-    private Direction getBestPlacementDirection(Minecraft client, BlockPos pos, ModConfig cdata, ZoneManager zoneManager) {
-        if (zoneManager.isInExcludedZone(pos)) return null;
-        if (!client.level.getBlockState(pos).canBeReplaced() || !client.level.getBlockState(pos).getFluidState().isEmpty()) return null;
-
-        if (cdata.preferWallPlacement) {
-            Direction wallDir = getWallDirectionOnly(client, pos, cdata);
-            if (wallDir != null) return wallDir;
-        }
-        return getFloorDirectionOnly(client, pos, cdata);
-    }
-
-    private void queueTorchPlacement(BlockPos basePos, BlockPos placementPos, Direction dir, ModConfig cdata) {
-        this.pendingTorchBasePos = basePos;
-        this.pendingTorchPos = placementPos;
-        this.pendingTorchDir = dir;
-        this.pendingTorchDelay = cdata.lightUpdateDelayTicks; 
-    }
-
-    private boolean hasTorchNearby(Minecraft client, BlockPos pos, int radius) {
-        for (int x = -radius; x <= radius; x++) {
-            for (int y = -radius; y <= radius; y++) {
-                for (int z = -radius; z <= radius; z++) {
-                    if (client.level.getBlockState(pos.offset(x, y, z)).getBlock() instanceof TorchBlock) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean tryPlaceTorch(Minecraft client, BlockPos pos, Direction dir, ModConfig cdata) {
-        int torchSlot = -1;
-        int inventoryTorchSlot = -1;
-        InteractionHand placingHand = InteractionHand.MAIN_HAND;
-
-        if (isTorch(client.player.getOffhandItem())) {
-            placingHand = InteractionHand.OFF_HAND;
-        } else {
-            for (int i = 0; i < 9; i++) {
-                if (isTorch(client.player.getInventory().getItem(i))) {
-                    torchSlot = i;
-                    break;
-                }
-            }
-            if (torchSlot == -1 && cdata.useInventoryTorches) {
-                // In survival inventory (container id 0), slots 9-35 are the main inventory.
-                // The slot index in the packet for main inventory starts at 9.
-                for (int i = 9; i < 36; i++) {
-                    if (isTorch(client.player.getInventory().getItem(i))) {
-                        inventoryTorchSlot = i;
-                        torchSlot = cdata.refillHotbarSlot - 1;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (placingHand == InteractionHand.MAIN_HAND && torchSlot == -1) return false;
-
-        int currentSlot = client.player.getInventory().getSelectedSlot();
-        
-        BlockPos targetBlock = pos.relative(dir);
-        Direction hitFace = dir.getOpposite();
-
-        Vec3 start = client.player.getEyePosition();
-        Vec3 hitPos = Vec3.atCenterOf(targetBlock).add(Vec3.atLowerCornerOf(new net.minecraft.core.Vec3i(hitFace.getStepX(), hitFace.getStepY(), hitFace.getStepZ())).scale(0.5));
-
-        // REACH CHECK FIRST
-        float reach = client.player.isCreative() ? 5.0f : 4.5f;
-        if (hitPos.distanceToSqr(start) > (reach * reach)) {
+        LocalPlayer player = client.player;
+        TorchInventoryClassifier.TorchSource source = inventoryController.findTorchSource(player, cdata);
+        if (source == null) {
             return false;
         }
 
+        Vec3 hitPos = RaycastUtils.computeTargetHitPos(pos, dir);
+        double reach = player.blockInteractionRange();
+        if (hitPos.distanceToSqr(player.getEyePosition()) > reach * reach) {
+            return false;
+        }
+
+        int currentSlot = player.getInventory().getSelectedSlot();
         boolean didSwap = false;
-        if (inventoryTorchSlot != -1) {
-
-            
-            // Manually read the UI slots BEFORE the swap to get the correct state
-            net.minecraft.world.inventory.Slot sourceSlot = client.player.inventoryMenu.getSlot(inventoryTorchSlot);
-            net.minecraft.world.inventory.Slot targetSlot = client.player.inventoryMenu.getSlot(36 + torchSlot);
-            ItemStack sourceItem = sourceSlot.getItem().copy();
-            ItemStack targetItem = targetSlot.getItem().copy();
-            
-            client.gameMode.handleContainerInput(0, inventoryTorchSlot, torchSlot, ContainerInput.SWAP, client.player);
-            
-            // Manually update the UI slots to ensure the open inventory reflects the swap immediately
-            sourceSlot.set(targetItem);
-            targetSlot.set(sourceItem);
-            
+        if (source.inventorySlot() != -1) {
+            if (!inventoryController.swapInventoryWithHotbar(client, source.inventorySlot(), source.hotbarSlot())) {
+                return false;
+            }
             didSwap = true;
-
+        }
+        if (source.hand() == InteractionHand.MAIN_HAND && currentSlot != source.hotbarSlot()) {
+            inventoryController.selectHotbarSlot(client, source.hotbarSlot());
+            didSwap = true;
         }
 
-        if (placingHand == InteractionHand.MAIN_HAND && currentSlot != torchSlot) {
-
-            client.player.getInventory().setSelectedSlot(torchSlot);
-            client.player.connection.send(new ServerboundSetCarriedItemPacket(torchSlot));
-            didSwap = true;
-
-        }
-
+        ReadyPlacement pending = new ReadyPlacement(pos, dir, source.hand(), currentSlot, source.hotbarSlot(), source.inventorySlot());
         if (didSwap && cdata.inventorySwapDelayTicks > 0) {
-
-            this.swapWaitPos = pos;
-            this.swapWaitDir = dir;
-            this.swapWaitHand = placingHand;
-            this.swapWaitCurrentSlot = currentSlot;
-            this.swapWaitTorchSlot = torchSlot;
-            this.swapWaitInventoryTorchSlot = inventoryTorchSlot;
+            this.pendingSwapPlacement = pending;
             this.pendingSwapWaitDelay = cdata.inventorySwapDelayTicks;
             return true;
         }
-
-        return executeTorchPlacement(client, cdata, pos, dir, placingHand, currentSlot, torchSlot, inventoryTorchSlot);
+        return armPlacementForCurrentSync(client, cdata, currentGameTime, pending);
     }
 
-    private boolean executeTorchPlacement(Minecraft client, ModConfig cdata, BlockPos pos, Direction dir, InteractionHand placingHand, int currentSlot, int torchSlot, int inventoryTorchSlot) {
-        BlockPos targetBlock = pos.relative(dir);
-        Direction hitFace = dir.getOpposite();
-
-        Vec3 start = client.player.getEyePosition();
-        Vec3 hitPos = Vec3.atCenterOf(targetBlock).add(Vec3.atLowerCornerOf(new net.minecraft.core.Vec3i(hitFace.getStepX(), hitFace.getStepY(), hitFace.getStepZ())).scale(0.5));
-
-        if (cdata.advancedPacketSpoofing) {
-            double dx = hitPos.x - start.x;
-            double dy = hitPos.y - start.y;
-            double dz = hitPos.z - start.z;
-            double diffXZ = Math.sqrt(dx * dx + dz * dz);
-            float yaw = (float) (Math.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
-            float pitch = (float) -(Math.atan2(dy, diffXZ) * (180.0 / Math.PI));
-            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(yaw, pitch, client.player.onGround(), false));
-        } else if (cdata.accuratePlacement) {
-            client.player.connection.send(new ServerboundMovePlayerPacket.Rot(client.player.getYRot(), 90.0F, client.player.onGround(), false));
-        }
-        
-
-        InteractionResult result = client.gameMode.useItemOn(client.player, placingHand, new BlockHitResult(hitPos, hitFace, targetBlock, false));
-                
-        if (result == InteractionResult.FAIL || result == InteractionResult.PASS) {
-            if (placingHand == InteractionHand.MAIN_HAND && currentSlot != torchSlot) {
-                client.player.getInventory().setSelectedSlot(currentSlot);
-                client.player.connection.send(new ServerboundSetCarriedItemPacket(currentSlot));
-                
-                if (inventoryTorchSlot != -1) {
-                    net.minecraft.world.inventory.Slot sourceSlot = client.player.inventoryMenu.getSlot(inventoryTorchSlot);
-                    net.minecraft.world.inventory.Slot targetSlot = client.player.inventoryMenu.getSlot(36 + torchSlot);
-                    ItemStack sourceItem = sourceSlot.getItem().copy();
-                    ItemStack targetItem = targetSlot.getItem().copy();
-                    
-                    client.gameMode.handleContainerInput(0, inventoryTorchSlot, torchSlot, ContainerInput.SWAP, client.player);
-                    
-                    sourceSlot.set(targetItem);
-                    targetSlot.set(sourceItem);
-                }
+    private boolean armPlacementForCurrentSync(
+            Minecraft client, ModConfig cdata, long currentGameTime, ReadyPlacement candidate
+    ) {
+        LocalPlayer player = client.player;
+        if (cdata.advancedPacketSpoofing || cdata.accuratePlacement) {
+            Vec3 hitPos = RaycastUtils.computeTargetHitPos(candidate.pos(), candidate.dir());
+            RotationSpoofController.RotationAngles target = RotationSpoofController.computeTargetAngles(
+                    player.getEyePosition(), hitPos, player.getYRot(),
+                    cdata.advancedPacketSpoofing, cdata.accuratePlacement
+            );
+            RotationSpoofController.RotationAngles spoof = rotationController.beginTickSpoof(
+                    player.getYRot(), player.getXRot(), target, currentGameTime, player.isPassenger()
+            );
+            if (spoof == null) {
+                inventoryController.revertNow(
+                        client, candidate.placingHand(), candidate.currentSlot(), candidate.torchSlot(), candidate.inventoryTorchSlot()
+                );
+                return false;
             }
+            if (rotationController.isSpoofActiveInCurrentSync()) {
+                player.setYRot(spoof.yaw());
+                player.setXRot(spoof.pitch());
+            }
+        }
+        this.readyPlacement = candidate;
+        return true;
+    }
+
+    private boolean executeArmedPlacement(Minecraft client, ModConfig cdata, ReadyPlacement armed) {
+        LocalPlayer player = client.player;
+        BlockPos targetBlock = armed.pos().relative(armed.dir());
+        Direction hitFace = armed.dir().getOpposite();
+        Vec3 hitPos = RaycastUtils.computeTargetHitPos(armed.pos(), armed.dir());
+
+        ItemStack activeStack = player.getItemInHand(armed.placingHand());
+        SwingAnimation interactAnim = activeStack.isEmpty() ? SwingAnimation.DEFAULT : activeStack.getInteractAnimation();
+
+        InteractionResult result = client.gameMode.useItemOn(
+                player, armed.placingHand(), new BlockHitResult(hitPos, hitFace, targetBlock, false)
+        );
+        if (result == InteractionResult.FAIL || result == InteractionResult.PASS) {
+            inventoryController.revertNow(
+                    client, armed.placingHand(), armed.currentSlot(), armed.torchSlot(), armed.inventoryTorchSlot()
+            );
             return false;
         }
-
         if (cdata.swingHand) {
-            client.player.swing(placingHand);
+            player.swing(armed.placingHand(), interactAnim, false);
         }
-
-        if (placingHand == InteractionHand.MAIN_HAND) {
-            if (currentSlot != torchSlot || inventoryTorchSlot != -1) {
-                this.revertSlotIndex = currentSlot;
-                this.revertSlotDelay = cdata.humanizedDelay ? (cdata.slotRevertDelayTicks + (int)(Math.random() * cdata.slotRevertVariance)) : cdata.slotRevertDelayTicks;
-                
-                if (inventoryTorchSlot != -1) {
-                    this.revertInventorySwapSource = inventoryTorchSlot;
-                    this.revertInventorySwapTarget = torchSlot;
-                }
-            }
+        if (armed.placingHand() == InteractionHand.MAIN_HAND
+                && (armed.currentSlot() != armed.torchSlot() || armed.inventoryTorchSlot() != -1)) {
+            int revertDelay = computeHumanizedTicks(cdata.slotRevertDelayTicks, cdata.slotRevertVariance, cdata.humanizedDelay);
+            inventoryController.scheduleRevert(revertDelay, armed.currentSlot(), armed.torchSlot(), armed.inventoryTorchSlot());
         }
         return true;
+    }
+
+    private int computeHumanizedTicks(int baseTicks, int variance, boolean humanized) {
+        return (!humanized || variance <= 0) ? baseTicks : baseTicks + ThreadLocalRandom.current().nextInt(variance + 1);
     }
 }

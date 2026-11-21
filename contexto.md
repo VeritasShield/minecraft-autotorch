@@ -1,30 +1,37 @@
 # Contexto del Proyecto: Auto Torch Enhanced
 
 ## 1. Descripción General
-"Auto Torch Enhanced" es un mod Client-Side para Minecraft desarrollado usando el Fabric Mod Loader. Permite a los jugadores colocar antorchas automáticamente en zonas de baja iluminación de forma "Server-Friendly" para no ser detectados por Anti-Cheats.
+"Auto Torch Enhanced" es un mod Client-Side para Minecraft desarrollado usando el Fabric Mod Loader. Permite a los jugadores colocar antorchas automáticamente en zonas de baja iluminación de forma "Server-Friendly" para minimizar falsos positivos de Anti-Cheats.
 
 ## 2. Entorno y Herramientas (Stack Tecnológico)
-* **Minecraft Version**: 26.2 (Equivalente a iteraciones 1.21.2+)
+* **Minecraft Version**: `26.3` (Unobfuscated nativo)
 * **Java Version**: Java 25
-* **API / Mod Loader**: Fabric Loader y Fabric API
-* **Sistema de Mapeos**: **MOJANG MAPPINGS**. En la versión 26.2, Fabric trata el entorno como *unobfuscated* de forma nativa. **No se utiliza Yarn Mappings**. Todas las clases siguen el estándar oficial de Mojang (ej. `net.minecraft.client.gui.screens.Screen` o `net.minecraft.world.entity.player.Player`).
-* **Dependencias Extra**: ModMenu y Cloth-Config API (manejado por AutoConfig).
+* **Build Toolchain**: Gradle `9.8.2` + Fabric Loom `1.19.4`
+* **API / Mod Loader**: Fabric Loader `0.20.1` y Fabric API `0.166.2+26.3`
+* **Sistema de Mapeos**: **MOJANG MAPPINGS**. Desde Minecraft 26.x, Fabric opera sobre jars unobfuscated de forma nativa. **No se utiliza Yarn Mappings.** Todas las clases siguen el estándar oficial de Mojang (ej. `net.minecraft.client.gui.screens.Screen`, `net.minecraft.world.entity.player.Player`).
+* **Dependencias Extra**: Cloth Config API (`26.3.159`, incluido vía Jar-in-Jar) y ModMenu (`21.0.1`).
 
 ## 3. Arquitectura del Código
-El mod está estructurado dentro de `src/main/java/autotorch/autotorch/client/`:
-* `AutotorchClient`: Punto de entrada (`ClientModInitializer`). Registra los eventos de Ticks del cliente, HUD, y carga la configuración.
-* `TorchPlacementEngine`: El motor lógico principal. Se ejecuta en cada Tick. Realiza un escaneo volumétrico (3D) buscando niveles de luz bajos. Incluye optimizaciones como **Throttling (`scanDelayTicks`)** para reducir el impacto en CPU al evitar escaneos en cada tick, y **Advanced Packet Spoofing** para enviar paquetes matemáticamente precisos de rotación (*Pitch/Yaw*) hacia la cara superior del bloque antes de colocar la antorcha.
-* `ZoneManager`: Permite al usuario delimitar zonas espaciales (WorldEdit-style) donde el mod tiene estrictamente prohibido actuar. Guarda las coordenadas en la configuración y las parsea a `AABB` geométricas para validaciones rápidas (`O(N)`). Ahora incluye lógica para borrar directamente el `AABB` actual si el jugador se encuentra dentro.
-* `ModConfig`: Esquema de configuración (utiliza `me.shedaniel.autoconfig`). Guarda datos de listas negras, tiempos de espera humanos, radios de acción y niveles de luz.
-* `KeybindManager`: Registra los atajos de teclado (`KeyMapping.Category.register`). Controla eventos avanzados como `Shift + Z` (borrar zona actual) o `Ctrl + Z` (borrar todas las zonas).
-* `SelectionRenderer`: Dibuja "bounding boxes" visuales (partículas) cuando el usuario está definiendo una `Zone` o cuando las está previsualizando en modo selección (`zoneSelectionMode`).
-* `RaycastUtils`: Utilidades de matemáticas de vectores para trazar la línea de visión (Line Of Sight / FOV) del jugador y evitar poner antorchas a través de bloques u obstáculos.
+El mod está estructurado de forma modular dentro de `src/main/java/autotorch/autotorch/client/` (todos los archivos $\le 350$ LOC) con pruebas JUnit 5 en `src/test/java/autotorch/autotorch/client/`:
+* `AutotorchClient`: Punto de entrada (`ClientModInitializer`). Registra ticks del cliente (`END_CLIENT_TICK` para keybinds y partículas), callbacks de interacción (`AttackBlockCallback`, `UseBlockCallback`), desconexión (`ClientPlayConnectionEvents.DISCONNECT`), hooks de `LocalPlayerMixin` (`onBeforePlayerSendChanges` / `onAfterPlayerSendChanges`), y listeners de carga/guardado de AutoConfig. La retroalimentación visual se realiza mediante partículas en el mundo (`SelectionRenderer`) y mensajes en barra de acción (`sendOverlayMessage`).
+* `mixin/LocalPlayerMixin`: Inyecta `@At("HEAD")` y `@At("RETURN")` en `LocalPlayer.sendChanges()` (`autotorch.mixins.json`) para alinear la colocación y el spoof de rotación con el único paquete de movimiento enviado por `LocalPlayer.sendPosition()` en cada tick.
+* `TorchPlacementEngine`: Orquestador de colocación sincronizado con `LocalPlayer.sendChanges()`. Gestiona cooldowns, limpieza de estado al cambiar de mundo/dimensión, alcance (`player.blockInteractionRange()`), colocación armada (`ReadyPlacement`) y `useItemOn` con `SwingAnimation` (`26.3`).
+* `TorchTargetScanner`: Escáner volumétrico 3D unificado. Evalúa candidatos alrededor del jugador y en anillos radiales usando `PlacementCandidate` (record inmutable), calcula puntajes de pared/piso con whitelist/blacklist, valida FOV consistentemente y verifica `smartSpacing` sin asignaciones heap usando `BlockPos.MutableBlockPos`.
+* `InventorySwapController`: Controlador atómico de inventario y hotbar. Ejecuta `ContainerInput.SWAP` únicamente cuando el inventario del jugador está activo (`containerMenu == inventoryMenu && client.gui.screen() == null`), clasifica el resultado post-swap (`SYNCED`, `REJECTED_NO_OP`, `PARTIAL_DESYNC` sin sobrescribir slots en desync), y verifica el ítem desplazado antes de revertir.
+* `TorchInventoryClassifier`: Clasifica armas y antorchas usando paths del registro y tags estáticos (`#c:swords`, `#c:axes`, `#c:bows`, `#c:torches`) sin depender de `instanceof` frágiles, y localiza fuentes válidas de antorchas en offhand, hotbar o inventario principal.
+* `RotationSpoofController`: Controlador de rotación compatible con Anti-Cheats. Envuelve/limita ángulos (`wrapYaw`/`clampPitch`), omite el spoof cuando `player.isPassenger()`, aplica las rotaciones durante `LocalPlayer.sendChanges()` para que `sendPosition()` emita exactamente 1 paquete de movimiento por tick (con `horizontalCollision` real), garantiza la restauración fail-safe de cámara (`forceRestoreIfActive`) y omite la restauración al tick siguiente si el jugador rotó manualmente.
+* `ZoneManager`: Administra zonas de exclusión 3D por dimensión (`<dimension>@x1,y1,z1|x2,y2,z2`, con retrocompatibilidad para entradas legadas sin dimensión), caché `AABB` por dimensión sincronizado en carga/guardado de configuración, borrado de zona actual y limpieza al cambiar de mundo.
+* `ModConfig`: Esquema de configuración con `me.shedaniel.autoconfig` (`general`, `server_friendly`, `advanced`).
+* `KeybindManager`: Registra 5 atajos configurables en `KeyMapping.Category` (`autotorch:options`) usando `InputConstants.Type.KEYBOARD` y constantes `InputConstants.KEY_*` / `InputConstants.UNKNOWN.getValue()`.
+* `SelectionRenderer`: Dibuja cajas de partículas delimitadas (tope de partículas por arista y culling por distancia) para selección/zonas excluidas y renderiza Darkness ESP.
+* `RaycastUtils`: Utilidades de raycasting (`ClipContext`) dirigidas a la cara de soporte (`computeRaycastEndpoint` con `+0.01` hacia el bloque soporte), verificación de semiplano frontal (`isEyeInFrontOfSupportFace`), validación de cara opuesta (`supportDir.getOpposite()`) y verificación de ángulo FOV (`isWithinFovCone`).
+* `ModMenuIntegration`: Implementa `ModMenuApi` devolviendo `AutoConfigClient.getConfigScreen(ModConfig.class, parent).get()`.
 
-## 4. Notas Críticas de Desarrollo y Problemas Conocidos (Workarounds)
-* **API de Inventario Privada**: Desde 26.2, la propiedad de selección de hotbar en el inventario es privada. Siempre usar `player.getInventory().getSelectedSlot()` y `setSelectedSlot(int)`.
-* **Sincronización de Inventario**: `handleContainerInput` (SWAP) actualiza el servidor, pero visualmente el UI se puede desincronizar. Siempre respaldar el item (`slot.getItem().copy()`) y forzar la sincronización gráfica con `slot.set()` después de mandar el paquete.
-* **Mensajes Nativos**: Se deprecó `displayClientMessage`. Los mensajes al usuario se deben enviar con `player.sendSystemMessage()` (chat) o `player.sendOverlayMessage()` (action bar).
-* **Parche de Cloth-Config (Reflection)**: Dado que compilamos con *Mojang Mappings* nativos, la librería pre-compilada `cloth-config-fabric v26.2.155` introduce un fallo de compilación porque exportó sus métodos bajo el mapping obsoleto Yarn (`net.minecraft.client.gui.screen.Screen` en singular, no plural). 
-  * **Solución permanente**: En `ModMenuIntegration.java`, la integración de la pantalla de opciones usa *Java Reflection* (`Class.forName("me.shedaniel.autoconfig.AutoConfig").getMethod(...)`) para puentear el compilador. Fabric Loader remapea todo en Runtime, por lo que Reflection funciona perfectamente in-game. Nunca intentes enlazar `AutoConfig.getConfigScreen` directamente en código.
-* **Componentes de Items**: Al checar si un item está en un Tag (ej. antorchas), usa la API moderna: `stack.typeHolder().is(TagKey)`. No usar `stack.isIn()`.
-* **Identificación de Ítems sin Ofuscación**: En el entorno de producción (jar compilado), las clases cambian de nombre (obfuscation). Para identificar armas, en lugar de usar `mainItem instanceof SwordItem` o `mainItem.getClass().getSimpleName()`, se DEBE usar `BuiltInRegistries.ITEM.getKey(mainItem).getPath()` o chequeos de Tags (`#c:swords`, `#c:axes`) para mantener la compatibilidad independientemente de los mappings de ofuscación.
+## 4. Notas Críticas de Desarrollo y Reglas Técnicas (Verificadas en 26.3)
+* **API de Inventario Privada**: La selección de hotbar es privada; siempre usar `player.getInventory().getSelectedSlot()` y `setSelectedSlot(int)`.
+* **Sincronización de Inventario (`ContainerInput.SWAP`)**: En `26.3`, `MultiPlayerGameMode.handleContainerInput` invoca sincrónicamente `AbstractContainerMenu.clicked(...)` actualizando `Inventory` y `Slot` en cliente antes de enviar `ServerboundContainerClickPacket`. Siempre comprobar `containerMenu == inventoryMenu && client.gui != null && client.gui.screen() == null`, verificar que la permuta ocurrió correctamente (`ItemStack.matches`) y notificar `slot.setChanged()` sin forzar mutaciones si el menú rechazó la operación.
+* **Cambios API en 26.3**: `Minecraft.screen` pasó a `client.gui.screen()`, `InputConstants.Type.KEYSYM` y `org.lwjgl.glfw.GLFW` fueron reemplazados por `InputConstants.Type.KEYBOARD` e `InputConstants.KEY_*`, y `LivingEntity.swing(InteractionHand)` ahora requiere `player.swing(hand, itemStack.getInteractAnimation(), false)`.
+* **Mensajes Nativos**: `displayClientMessage` está deprecado/eliminado; usar siempre `player.sendSystemMessage()` (chat) o `player.sendOverlayMessage()` (action bar).
+* **Integración Cloth-Config (`AutoConfigClient`)**: Desde 26.2/26.3, Cloth Config provee `me.shedaniel.autoconfig.AutoConfigClient.getConfigScreen(Class, Screen)` compilado nativamente contra Mojang Mappings (`net.minecraft.client.gui.screens.Screen`), eliminando la necesidad del antiguo parche por reflexión.
+* **Componentes y Tags de Ítems**: Para comprobar tags de ítems usar `stack.typeHolder().is(TagKey)` con `TagKey<Item>` cacheados como constantes estáticas (no usar `stack.isIn()`).
+* **Identificación Segura de Ítems**: Para identificar armas de vanilla y mods, usar `BuiltInRegistries.ITEM.getKey(mainItem).getPath()` y tags (`#c:swords`, `#c:axes`, `#c:bows`) en lugar de `instanceof SwordItem` o `getClass().getSimpleName()`.

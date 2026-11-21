@@ -12,7 +12,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.core.BlockPos;
-import org.lwjgl.glfw.GLFW;
 
 public class KeybindManager {
     private static final KeyMapping.Category keyCategory = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("autotorch", "options"));
@@ -20,8 +19,8 @@ public class KeybindManager {
     private static final KeyMapping AutoPlaceBinding = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "autotorch.autotorch.toggle",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_LEFT_ALT,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.KEY_LALT,
                     keyCategory
             )
     );
@@ -29,8 +28,8 @@ public class KeybindManager {
     private static final KeyMapping BlacklistBinding = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "autotorch.autotorch.blacklist",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_B,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.KEY_B,
                     keyCategory
             )
     );
@@ -38,8 +37,8 @@ public class KeybindManager {
     private static final KeyMapping ZoneSelectionBinding = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "autotorch.autotorch.zoneselector",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_Z,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.KEY_Z,
                     keyCategory
             )
     );
@@ -47,8 +46,8 @@ public class KeybindManager {
     private static final KeyMapping ZoneDeleteBinding = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "autotorch.autotorch.zonedelete",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_UNKNOWN,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.UNKNOWN.getValue(),
                     keyCategory
             )
     );
@@ -56,8 +55,8 @@ public class KeybindManager {
     private static final KeyMapping ZoneClearAllBinding = KeyMappingHelper.registerKeyMapping(
             new KeyMapping(
                     "autotorch.autotorch.zoneclearall",
-                    InputConstants.Type.KEYSYM,
-                    GLFW.GLFW_KEY_UNKNOWN,
+                    InputConstants.Type.KEYBOARD,
+                    InputConstants.UNKNOWN.getValue(),
                     keyCategory
             )
     );

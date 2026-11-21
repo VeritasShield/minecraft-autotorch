@@ -2,6 +2,8 @@
   "text.autoconfig.autotorch.title": "Antorcha Automática",
   "text.autoconfig.autotorch.option.enabled": "Activar Antorcha Automática",
   "text.autoconfig.autotorch.option.lightLevel": "Nivel de Luz Mínimo",
+  "text.autoconfig.autotorch.option.lightLevel.@Tooltip[0]": "Coloca una antorcha cuando la luz de bloque baja de este umbral.",
+  "text.autoconfig.autotorch.option.lightLevel.@Tooltip[1]": "El valor predeterminado es 7 (evita la aparición de mobs hostiles).",
   "text.autoconfig.autotorch.option.smartSpacing": "Espaciado Inteligente",
   "text.autoconfig.autotorch.option.smartSpacing.@Tooltip[0]": "Evita que se coloquen demasiadas antorchas juntas.",
   "text.autoconfig.autotorch.option.smartSpacing.@Tooltip[1]": "Comprueba un radio configurable para ver si ya hay antorchas cerca antes de colocar una.",

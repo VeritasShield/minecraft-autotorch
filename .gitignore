@@ -173,3 +173,7 @@ run/
 .history/src/main/resources/assets/autotorch/lang/es_es_20260309125920.json
 .history/src/main/resources/assets/autotorch/lang/es_es_20260316102845.json
 logs/2026-03-18-2.log.gz
+bin/
+logs/
+temp/
+output.txt
