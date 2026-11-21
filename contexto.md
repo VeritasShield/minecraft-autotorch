@@ -7,9 +7,9 @@
 * **Minecraft Version**: `26.3` (Unobfuscated nativo)
 * **Java Version**: Java 25
 * **Build Toolchain**: Gradle `9.8.2` + Fabric Loom `1.19.4`
-* **API / Mod Loader**: Fabric Loader `0.20.1` y Fabric API `0.166.2+26.3`
+* **API / Mod Loader**: Compilado contra Fabric Loader `0.20.1` y Fabric API `0.166.2+26.3`; compatible en runtime con `fabricloader >= 0.18.4` (`JAVA_25`), `minecraft ~26.3`, y cualquier versión `26.3` de Fabric API (`"fabric-api": "*"`, verificado en `0.153.1+26.3` .. `0.165.0+26.3` .. `0.166.2+26.3`).
 * **Sistema de Mapeos**: **MOJANG MAPPINGS**. Desde Minecraft 26.x, Fabric opera sobre jars unobfuscated de forma nativa. **No se utiliza Yarn Mappings.** Todas las clases siguen el estándar oficial de Mojang (ej. `net.minecraft.client.gui.screens.Screen`, `net.minecraft.world.entity.player.Player`).
-* **Dependencias Extra**: Cloth Config API (`26.3.159`, incluido vía Jar-in-Jar) y ModMenu (`21.0.1`).
+* **Dependencias Extra**: Cloth Config API (`26.3.159`, incluido vía Jar-in-Jar) y ModMenu (`21.0.1` en compilación; `>=21.0.0` sugerido en runtime).
 
 ## 3. Arquitectura del Código
 El mod está estructurado de forma modular dentro de `src/main/java/autotorch/autotorch/client/` (todos los archivos $\le 350$ LOC) con pruebas JUnit 5 en `src/test/java/autotorch/autotorch/client/`:

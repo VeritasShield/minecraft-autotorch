@@ -1,17 +1,7 @@
 package autotorch.autotorch.client;
 
-import autotorch.autotorch.client.mixin.LocalPlayerMixin;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
 import org.junit.jupiter.api.Test;
-import org.spongepowered.asm.mixin.MixinEnvironment;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -133,24 +123,5 @@ class RotationSpoofControllerTest {
         assertFalse(controller.isSpoofActiveInCurrentSync());
         assertEquals(Long.MIN_VALUE, controller.getLastSpoofRotGameTime());
         assertTrue(controller.canSpoofOnTick(0L));
-    }
-
-    @Test
-    void mixinConfigAndTargetMethodAreValidForMc26_3() throws Exception {
-        try (InputStream stream = getClass().getResourceAsStream("/autotorch.mixins.json")) {
-            assertNotNull(stream, "autotorch.mixins.json must be present on classpath");
-            JsonObject json = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            assertTrue(json.get("required").getAsBoolean());
-            assertEquals("autotorch.autotorch.client.mixin", json.get("package").getAsString());
-            assertEquals("JAVA_25", json.get("compatibilityLevel").getAsString());
-            assertEquals("LocalPlayerMixin", json.getAsJsonArray("client").get(0).getAsString());
-        }
-
-        assertNotNull(MixinEnvironment.CompatibilityLevel.valueOf("JAVA_25"));
-        assertEquals("autotorch.autotorch.client.mixin.LocalPlayerMixin", LocalPlayerMixin.class.getName());
-
-        Method sendChanges = LocalPlayer.class.getDeclaredMethod("sendChanges");
-        assertEquals(void.class, sendChanges.getReturnType());
-        assertEquals(0, sendChanges.getParameterCount());
     }
 }

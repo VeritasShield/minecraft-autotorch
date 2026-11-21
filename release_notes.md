@@ -1,3 +1,15 @@
+# Auto Torch Enhanced v2.2.16 (Minecraft 26.3)
+
+Compatibility update expanding runtime support across Minecraft `26.3` Fabric API and Fabric Loader releases so launchers like Prism Launcher resolve older `26.3` modpacks cleanly without manual overrides.
+
+## Compatibility & Packaging Fixes
+* **Broadened Fabric API Support (`"fabric-api": "*"` on `minecraft ~26.3`):** Resolved the Fabric Loader `HARD_DEP_NO_CANDIDATE` launch error when running alongside `fabric-api 0.165.0+26.3` (and all other `26.3` releases from `0.153.1+26.3` through `0.166.2+26.3+`).
+* **Verified Fabric Loader Floor (`"fabricloader": ">=0.18.4"`):** Lowered from `0.20.1` to the verified earliest `26.3` Fabric Loader supporting `JAVA_25` SpongePowered Mixin compatibility, while retaining strict `"minecraft": "~26.3"` and `"java": ">=25"` safety guards.
+* **ModMenu Compatibility (`"modmenu": ">=21.0.0"`):** Expanded optional suggestion range to include all `26.3` ModMenu releases.
+* **Dedicated Metadata & Mixin Test Suite (`ModMetadataTest`):** Validates `fabric.mod.json` SemVer dependency predicates via Fabric Loader's native `VersionPredicate` API alongside `autotorch.mixins.json` and `LocalPlayer.sendChanges()` bytecode verification.
+
+---
+
 # Auto Torch Enhanced v2.2.15 (Minecraft 26.3)
 
 Upgrade release targeting **Minecraft 26.3** (Java 25, native unobfuscated Mojang Mappings), modularizing the placement engine and hardening Anti-Cheat packet cadence, inventory synchronization, and weapon classification.
