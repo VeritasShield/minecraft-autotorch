@@ -93,13 +93,34 @@ class InventorySwapControllerTest {
     void weaponClassifierIdentifiesVanillaAndModdedWeaponsSafely() {
         assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("diamond_sword", false));
         assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("netherite_axe", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("golden_axe", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("iron_battleaxe", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("bow", false));
         assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("crossbow", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("elven_longbow", false));
         assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("trident", false));
-        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("modded_halberd", true));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("mace", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("minecraft:iron_sword", false));
+        assertTrue(TorchInventoryClassifier.isWeaponItemPathOrTagged("custom_item", true));
+    }
 
+    @Test
+    void weaponClassifierExcludesSubstringFalsePositives() {
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("waxed_copper_block", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("waxed_exposed_cut_copper_stairs", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("waxed_oxidized_copper_bulb", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("minecraft:waxed_copper_block", false));
         assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("iron_pickaxe", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("diamond_pickaxe", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("netherite_pickaxe", false));
         assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("bowl", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("mushroom_stew", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("rainbow_wool", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("rainbow_block", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("rainbow_torch", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("modid:rainbow_carpet", false));
         assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("torch", false));
+        assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("minecraft:", false));
         assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged("", false));
         assertFalse(TorchInventoryClassifier.isWeaponItemPathOrTagged(null, false));
     }

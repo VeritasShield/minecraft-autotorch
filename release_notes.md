@@ -1,3 +1,22 @@
+# Auto Torch Enhanced v2.2.15 (Minecraft 26.3)
+
+Upgrade release targeting **Minecraft 26.3** (Java 25, native unobfuscated Mojang Mappings), modularizing the placement engine and hardening Anti-Cheat packet cadence, inventory synchronization, and weapon classification.
+
+## Platform & Toolchain Upgrade
+* **Minecraft `26.3` & Java `25`:** Built on Gradle `9.8.2`, Fabric Loom `1.19.4`, Fabric Loader `0.20.1`, and Fabric API `0.166.2+26.3`.
+* **Companion Dependencies:** Updated Cloth Config API (`26.3.159`, bundled via Jar-in-Jar) and ModMenu (`21.0.1`).
+* **Clean Artifact Naming:** Standardized base archive names (`autotorch-enhanced-mc26.3-<version>`).
+
+## Anti-Cheat & Placement Hardening
+* **Single-Movement-Packet-Per-Tick Sync (`LocalPlayerMixin`):** Hooks `LocalPlayer.sendChanges()` (`HEAD`/`RETURN`) so look-angle spoofing piggybacks directly on Minecraft `26.3`'s single per-tick `sendPosition()` movement packet without emitting duplicate look packets, while skipping passenger/vehicle edge cases and guaranteeing fail-safe camera restoration (`try/finally` + end-of-tick fallback).
+* **Face-Aware Raycast Verification (`RaycastUtils`):** Raycasts directly against the intended support block face with front half-plane validation and directional surface matching to avoid through-wall or behind-the-back placements.
+* **Server-Authoritative Inventory Swap (`InventorySwapController`):** Guards `ContainerInput.SWAP` operations strictly to idle player inventory states (`containerMenu == inventoryMenu && client.gui.screen() == null`), classifies post-swap states (`SYNCED`, `REJECTED_NO_OP`, `PARTIAL_DESYNC`) without overwriting slots on partial desync, and verifies displaced stacks before reverting.
+* **Exact Weapon Identifier Token Matching (`TorchInventoryClassifier`):** Uses tokenized registry path matching paired with static Item Tags (`#c:swords`, `#c:axes`, `#c:bows`), eliminating false-positive weapon pauses on items such as `waxed_copper_block`, `iron_pickaxe`, `bowl`, and `rainbow_*` blocks/items while protecting genuine vanilla and modded weapons.
+* **Dimension-Scoped Anti-Torch Zones (`ZoneManager`):** Supports `<dimension>@x1,y1,z1|x2,y2,z2` exclusion zones with legacy entry backward compatibility and per-world cache isolation.
+* **Configurable Keybinds (`KeybindManager`) & Automated Tests:** Five configurable `InputConstants.Type.KEYBOARD` bindings and JUnit 5 regression test suites covering raycasting, rotation spoofing, zone parsing/isolation, swap state machine transitions, Mixin descriptor verification, and weapon classification.
+
+---
+
 # Auto Torch Enhanced v2.2.14
 
 This is a massive overhaul of the original mod, introducing **Server-Friendly** anti-cheat bypasses, smart environment scanning, and full UI customization!

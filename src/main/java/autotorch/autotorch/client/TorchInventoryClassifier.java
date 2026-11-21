@@ -14,6 +14,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.TorchBlock;
 
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Classifies weapons and torches using obfuscation-safe registry paths and
@@ -23,6 +24,16 @@ public class TorchInventoryClassifier {
     public static final int HOTBAR_SIZE = 9;
     public static final int MAIN_INVENTORY_START = 9;
     public static final int MAIN_INVENTORY_END = 36;
+
+    private static final Set<String> WEAPON_TOKENS = Set.of(
+            "sword", "swords",
+            "axe", "axes", "battleaxe", "battleaxes", "greataxe", "handaxe", "halberd",
+            "bow", "bows", "crossbow", "crossbows", "longbow", "shortbow",
+            "trident", "tridents",
+            "mace", "maces",
+            "spear", "spears",
+            "dagger", "daggers", "katana", "glaive", "scythe", "warhammer"
+    );
 
     private static final TagKey<Item> TAG_SWORDS = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "swords"));
     private static final TagKey<Item> TAG_AXES = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "axes"));
@@ -38,10 +49,20 @@ public class TorchInventoryClassifier {
         if (lowercasePath == null || lowercasePath.isEmpty()) {
             return false;
         }
-        return lowercasePath.contains("sword")
-                || (lowercasePath.contains("axe") && !lowercasePath.contains("pickaxe"))
-                || (lowercasePath.contains("bow") && !lowercasePath.contains("bowl"))
-                || lowercasePath.contains("trident");
+        String normalized = lowercasePath.toLowerCase(Locale.ROOT);
+        int colonIdx = normalized.indexOf(':');
+        if (colonIdx >= 0) {
+            normalized = normalized.substring(colonIdx + 1);
+        }
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        for (String token : normalized.split("[^a-z0-9]+")) {
+            if (!token.isEmpty() && WEAPON_TOKENS.contains(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isHoldingWeapon(LocalPlayer player) {
