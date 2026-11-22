@@ -3,6 +3,7 @@ plugins {
     id 'java'
     id 'net.fabricmc.fabric-loom' version "1.19.4"
     id 'org.ajoberstar.grgit' version '5.3.3'
+    id 'me.modmuss50.mod-publish-plugin' version '2.2.1'
 }
 repositories {
     maven { url = 'https://maven.shedaniel.me/' }
@@ -159,5 +160,43 @@ if (project.hasProperty('release')) {
             println "     (Usa '.\\gradlew build -Prelease' para publicar)"
             println "====================================================="
         }
+    }
+}
+
+def latestReleaseChangelog = providers.fileContents(layout.projectDirectory.file('release_notes.md'))
+        .asText
+        .map { text -> text.split(/(?m)^---\s*$/)[0].trim() }
+        .orElse("Release v${project.mod_version}")
+
+def curseforgeProjectId = providers.environmentVariable("CURSEFORGE_PROJECT_ID")
+        .orElse(providers.gradleProperty("curseforge_project_id"))
+
+publishMods {
+    file = jar.archiveFile
+    additionalFiles.from(sourcesJar.archiveFile)
+    changelog = latestReleaseChangelog
+    type = STABLE
+    modLoaders.add("fabric")
+    displayName = "Auto Torch Enhanced v${project.mod_version} (Minecraft ${project.minecraft_version})"
+    version = "${project.mod_version}+mc${project.minecraft_version}"
+    dryRun = providers.gradleProperty("publishDryRun").map { Boolean.parseBoolean(it) }.orElse(false)
+
+    modrinth {
+        projectId = "uGWYEogt"
+        accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+        minecraftVersions.add(project.minecraft_version)
+        requires("fabric-api")
+        optional("modmenu")
+    }
+
+    curseforge {
+        projectId = curseforgeProjectId
+        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+        minecraftVersions.add(project.minecraft_version)
+        javaVersions.add(JavaVersion.VERSION_25)
+        clientRequired = true
+        serverRequired = false
+        requires("fabric-api")
+        optional("modmenu")
     }
 }

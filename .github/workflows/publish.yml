@@ -1,31 +1,60 @@
-# Taken from https://github.com/CaffeineMC/sodium-fabric/blob/1.16.x/next/.github/workflows/publish.yml
-
 name: release-artifacts
 
 on:
   release:
-     types:
-       - published
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git branch or tag to build and publish (e.g. main or v2.2.16)'
+        required: true
+        default: 'main'
+        type: string
+      upload_github_assets:
+        description: 'Also upload JARs to a GitHub Release on manual dispatch'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+      CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_TOKEN }}
+      CURSEFORGE_PROJECT_ID: ${{ vars.CURSEFORGE_PROJECT_ID || secrets.CURSEFORGE_PROJECT_ID }}
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || '' }}
+
       - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '25'
+
       - name: Build artifacts
         run: chmod +x gradlew && ./gradlew build --no-daemon
+
       - name: Upload assets to GitHub
+        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.upload_github_assets)
         uses: softprops/action-gh-release@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.ref || '' }}
           files: |
             build/libs/*
             LICENSE
 
+      - name: Publish to Modrinth
+        if: env.MODRINTH_TOKEN != ''
+        run: ./gradlew publishModrinth --no-daemon
+
+      - name: Publish to CurseForge
+        if: env.CURSEFORGE_TOKEN != '' && env.CURSEFORGE_PROJECT_ID != ''
+        run: ./gradlew publishCurseforge --no-daemon
