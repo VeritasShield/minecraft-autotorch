@@ -1,12 +1,22 @@
 # Auto Torch Enhanced v2.2.16 (Minecraft 26.3)
 
-Compatibility update expanding runtime support across Minecraft `26.3` Fabric API and Fabric Loader releases so launchers like Prism Launcher resolve older `26.3` modpacks cleanly without manual overrides.
+Major upgrade and stabilization release bringing **Auto Torch Enhanced** to **Minecraft 26.3** and **Java 25** (consolidated changelog covering all changes since `v2.2.13`).
 
-## Compatibility & Packaging Fixes
-* **Broadened Fabric API Support (`"fabric-api": "*"` on `minecraft ~26.3`):** Resolved the Fabric Loader `HARD_DEP_NO_CANDIDATE` launch error when running alongside `fabric-api 0.165.0+26.3` (and all other `26.3` releases from `0.153.1+26.3` through `0.166.2+26.3+`).
-* **Verified Fabric Loader Floor (`"fabricloader": ">=0.18.4"`):** Lowered from `0.20.1` to the verified earliest `26.3` Fabric Loader supporting `JAVA_25` SpongePowered Mixin compatibility, while retaining strict `"minecraft": "~26.3"` and `"java": ">=25"` safety guards.
-* **ModMenu Compatibility (`"modmenu": ">=21.0.0"`):** Expanded optional suggestion range to include all `26.3` ModMenu releases.
-* **Dedicated Metadata & Mixin Test Suite (`ModMetadataTest`):** Validates `fabric.mod.json` SemVer dependency predicates via Fabric Loader's native `VersionPredicate` API alongside `autotorch.mixins.json` and `LocalPlayer.sendChanges()` bytecode verification.
+## Platform Upgrade & Broadened Compatibility (`Minecraft 26.3` / `Java 25`)
+* **Minecraft `26.3` & Java `25`:** Ported cleanly to Minecraft `26.3`'s native unobfuscated Mojang Mappings (`net.fabricmc.fabric-loom 1.19.4`, Gradle `9.8.2`) and updated Swing, Screen (`client.gui.screen()`), and `InputConstants.Type.KEYBOARD` bindings.
+* **Broadened Fabric API Support (`"fabric-api": "*"` on `minecraft ~26.3`):** Resolves the Fabric Loader `HARD_DEP_NO_CANDIDATE` launch error on earlier `26.3` builds such as `0.165.0+26.3`, supporting every `26.3` Fabric API release (`0.153.1+26.3` through `0.166.2+26.3+`).
+* **Verified Fabric Loader Floor (`"fabricloader": ">=0.18.4"`):** Set to the verified earliest `26.3` Fabric Loader supporting `JAVA_25` SpongePowered Mixin compatibility (compiled against `0.20.1`), while strictly enforcing `"minecraft": "~26.3"` and `"java": ">=25"`.
+* **Companion Mods & Clean Packaging:** Updated bundled **Cloth Config API (`26.3.159`)** via Jar-in-Jar (no external install required), widened optional **ModMenu** compatibility (`>=21.0.0`, compiled against `21.0.1`), and standardized release artifact names (`autotorch-enhanced-mc26.3-<version>`).
+
+## Anti-Cheat Packet Synchronization & Placement Hardening
+* **Single-Movement-Packet-Per-Tick Sync (`LocalPlayerMixin`):** Hooks `LocalPlayer.sendChanges()` (`HEAD`/`RETURN`) so look-angle spoofing piggybacks directly on Minecraft `26.3`'s single per-tick `sendPosition()` movement packet without emitting duplicate rotation packets or corrupting collision flags.
+* **Passenger & Camera Safety (`RotationSpoofController`):** Skips rotation spoofing while mounted (`player.isPassenger()`), respects manual camera movement on the next tick, and guarantees fail-safe camera restoration (`try/finally` + end-of-tick fallback).
+* **Face-Aware Raycast Verification (`RaycastUtils`):** Raycasts directly against the intended support block face with front half-plane validation and opposite-face verification to prevent through-wall or behind-the-back placements.
+
+## Inventory Safety, Zones, Keybinds & Code Quality
+* **Server-Authoritative Inventory Swap (`InventorySwapController`):** Guards `ContainerInput.SWAP` strictly to idle player inventory states (`containerMenu == inventoryMenu && client.gui.screen() == null`), classifies swap outcomes (`SYNCED`, `REJECTED_NO_OP`, `PARTIAL_DESYNC`) without overwriting server slots on desync, and verifies displaced stacks before reverting.
+* **Exact Weapon Identifier Token Matching (`TorchInventoryClassifier`):** Uses tokenized registry path matching paired with static Item Tags (`#c:swords`, `#c:axes`, `#c:bows`), fixing false-positive combat pauses on items such as `waxed_copper_block`, `waxed_*`, `*_pickaxe`, `bowl`, and `rainbow_*` while protecting genuine vanilla and modded weapons.
+* **Dimension-Scoped Anti-Torch Zones & Configurable Keybinds (`ZoneManager`, `KeybindManager`):** Stores exclusion zones per dimension (`<dimension>@x1,y1,z1|x2,y2,z2`) with legacy entry compatibility, adds dedicated configurable `Delete Current Zone` and `Clear All Zones` keybinds, caps particle rendering density (`SelectionRenderer`), removes `[AutoTorch Log]` debug spam introduced in `v2.2.13`, and backs core modules with `28 / 28` JUnit 5 tests (including `ModMetadataTest` SemVer predicate and Mixin target verification).
 
 ---
 
