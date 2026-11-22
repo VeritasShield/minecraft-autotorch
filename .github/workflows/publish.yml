@@ -16,6 +16,16 @@ on:
         required: false
         default: false
         type: boolean
+      publish_modrinth:
+        description: 'Publish release artifact to Modrinth'
+        required: false
+        default: true
+        type: boolean
+      publish_curseforge:
+        description: 'Publish release artifact to CurseForge'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
@@ -39,9 +49,11 @@ jobs:
           java-version: '25'
 
       - name: Build artifacts
+        id: build
         run: chmod +x gradlew && ./gradlew build --no-daemon
 
       - name: Upload assets to GitHub
+        id: github_release
         if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.upload_github_assets)
         uses: softprops/action-gh-release@v2
         with:
@@ -52,9 +64,30 @@ jobs:
             LICENSE
 
       - name: Publish to Modrinth
-        if: env.MODRINTH_TOKEN != ''
+        id: modrinth
+        continue-on-error: true
+        if: ${{ success() && env.MODRINTH_TOKEN != '' && (github.event_name == 'release' || inputs.publish_modrinth) }}
         run: ./gradlew publishModrinth --no-daemon
 
       - name: Publish to CurseForge
-        if: env.CURSEFORGE_TOKEN != '' && env.CURSEFORGE_PROJECT_ID != ''
+        id: curseforge
+        continue-on-error: true
+        if: ${{ success() && env.CURSEFORGE_TOKEN != '' && env.CURSEFORGE_PROJECT_ID != '' && (github.event_name == 'release' || inputs.publish_curseforge) }}
         run: ./gradlew publishCurseforge --no-daemon
+
+      - name: Verify publishing outcomes
+        if: always()
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          GH_RELEASE_OUTCOME: ${{ steps.github_release.outcome }}
+          MODRINTH_OUTCOME: ${{ steps.modrinth.outcome }}
+          CURSEFORGE_OUTCOME: ${{ steps.curseforge.outcome }}
+        run: |
+          echo "Build outcome: ${BUILD_OUTCOME}"
+          echo "GitHub Release upload outcome: ${GH_RELEASE_OUTCOME}"
+          echo "Modrinth publish outcome: ${MODRINTH_OUTCOME}"
+          echo "CurseForge publish outcome: ${CURSEFORGE_OUTCOME}"
+          if [ "${BUILD_OUTCOME}" != "success" ] || [ "${GH_RELEASE_OUTCOME}" = "failure" ] || [ "${MODRINTH_OUTCOME}" = "failure" ] || [ "${CURSEFORGE_OUTCOME}" = "failure" ]; then
+            echo "One or more publishing steps failed."
+            exit 1
+          fi
